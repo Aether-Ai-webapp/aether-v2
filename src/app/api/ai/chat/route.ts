@@ -3,10 +3,17 @@ import { NextRequest } from 'next/server'
 // POST /api/ai/chat - Chat with AI about memories (RAG-powered)
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { message } = body
+    // ── Parse request body with validation ───────────────────────────
+    let message = ''
+    try {
+      const body = await req.json()
+      message = body?.message || ''
+    } catch (parseErr) {
+      console.error('Chat: Failed to parse request body:', parseErr instanceof Error ? parseErr.message : 'Unknown')
+      return new Response('Invalid JSON body', { status: 400 })
+    }
 
-    if (!message?.trim()) {
+    if (!message.trim()) {
       return new Response('Message is required', { status: 400 })
     }
 
@@ -29,7 +36,8 @@ export async function POST(req: NextRequest) {
           try {
             const { GoogleGenerativeAI } = await import('@google/generative-ai')
             const genAI = new GoogleGenerativeAI(geminiKey)
-            const embeddingModel = genAI.getGenerativeModel('text-embedding-004')
+            // FIX: Must pass object, not bare string
+            const embeddingModel = genAI.getGenerativeModel({ model: 'text-embedding-004' })
             const embedResult = await embeddingModel.embedContent(message)
             const queryEmbedding = embedResult.embedding.values
 
@@ -159,8 +167,9 @@ Memory Handling:
       })
 
       responseText = completion.choices?.[0]?.message?.content || ''
+      if (responseText) console.log('Chat: z-ai succeeded')
     } catch (zaiError) {
-      console.error('z-ai failed:', zaiError instanceof Error ? zaiError.message : 'Unknown')
+      console.warn('z-ai failed, trying Gemini:', zaiError instanceof Error ? zaiError.message : 'Unknown')
     }
 
     // ── Try Gemini (FAILOVER 1) ──────────────────────────────────────
@@ -170,6 +179,7 @@ Memory Handling:
         try {
           const { GoogleGenerativeAI } = await import('@google/generative-ai')
           const genAI = new GoogleGenerativeAI(geminiKey)
+          // FIX: Must pass object with model property, not bare string
           const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
 
           const result = await model.generateContent({
@@ -182,8 +192,9 @@ Memory Handling:
           })
 
           responseText = result.response.text() || ''
+          if (responseText) console.log('Chat: Gemini succeeded')
         } catch (geminiError) {
-          console.error('Gemini failed:', geminiError instanceof Error ? geminiError.message : 'Unknown')
+          console.warn('Gemini failed, trying Groq:', geminiError instanceof Error ? geminiError.message : 'Unknown')
         }
       }
     }
@@ -213,15 +224,19 @@ Memory Handling:
           if (groqResponse.ok) {
             const data = await groqResponse.json()
             responseText = data.choices?.[0]?.message?.content || ''
+            if (responseText) console.log('Chat: Groq succeeded')
+          } else {
+            console.warn('Groq API returned:', groqResponse.status, groqResponse.statusText)
           }
         } catch (groqError) {
-          console.error('Groq failed:', groqError instanceof Error ? groqError.message : 'Unknown')
+          console.warn('Groq failed:', groqError instanceof Error ? groqError.message : 'Unknown')
         }
       }
     }
 
     // ── Built-in fallback (always works) ──────────────────────────────
     if (!responseText) {
+      console.log('Chat: All AI providers failed, using built-in fallback')
       responseText = `Hey! 👋 Here's what I found in your memories:\n\n` +
         `You have **${memoryCount} memories** saved (${typeSummary || 'none yet'}).${searchMethod === 'semantic' ? ' (AI-powered semantic search)' : ''}\n\n` +
         (memoryCount > 0

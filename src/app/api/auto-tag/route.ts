@@ -130,9 +130,15 @@ async function tryGemini(content: string): Promise<string | null> {
 // Multi-AI auto-tagging: z-ai → Groq → Gemini
 export async function POST(req: NextRequest) {
   try {
-    const { content } = await req.json()
+    let content = ''
+    try {
+      const body = await req.json()
+      content = body?.content || ''
+    } catch (parseErr) {
+      return NextResponse.json({ tags: [], category: '' }, { status: 400 })
+    }
 
-    if (!content?.trim()) {
+    if (!content.trim()) {
       return NextResponse.json({ tags: [], category: '' }, { status: 400 })
     }
 
@@ -144,11 +150,57 @@ export async function POST(req: NextRequest) {
       ),
     ])
 
+    // FIX: Provide a keyword-based fallback category if AI didn't return one
+    if (!result.category?.trim()) {
+      result.category = inferCategoryFromContent(content)
+    }
+
+    // FIX: Provide keyword-based fallback tags if AI didn't return any
+    if (!result.tags || result.tags.length === 0) {
+      result.tags = inferTagsFromContent(content)
+    }
+
     return NextResponse.json(result)
   } catch (error) {
     console.error('Auto-tag error:', error instanceof Error ? error.message : 'Unknown error')
     return NextResponse.json({ tags: [], category: '' })
   }
+}
+
+// ─── Keyword-based fallback for category when AI fails ──────────────
+function inferCategoryFromContent(content: string): string {
+  const lower = content.toLowerCase()
+  const categoryMap: Record<string, string[]> = {
+    'Work': ['meeting', 'project', 'deadline', 'client', 'office', 'team', 'quarterly'],
+    'Personal': ['routine', 'morning', 'exercise', 'meditation', 'journal', 'habit'],
+    'Travel': ['trip', 'itinerary', 'flight', 'hotel', 'visit', 'destination'],
+    'Learning': ['learn', 'study', 'course', 'tutorial', 'book', 'read', 'article'],
+    'Code': ['code', 'programming', 'react', 'javascript', 'typescript', 'api', 'bug', 'css'],
+    'Design': ['design', 'ui', 'ux', 'layout', 'color', 'font', 'figma'],
+    'Finance': ['budget', 'expense', 'invest', 'savings', 'money', 'cost'],
+    'Ideas': ['idea', 'concept', 'brainstorm', 'innovative', 'startup'],
+  }
+
+  for (const [category, keywords] of Object.entries(categoryMap)) {
+    if (keywords.some(kw => lower.includes(kw))) {
+      return category
+    }
+  }
+  return 'Notes'
+}
+
+// ─── Keyword-based fallback for tags when AI fails ──────────────────
+function inferTagsFromContent(content: string): string[] {
+  const lower = content.toLowerCase()
+  const tags: string[] = []
+
+  if (/https?:\/\//.test(lower)) tags.push('link')
+  if (/\b(todo|remind|need to|must|buy)\b/.test(lower)) tags.push('task')
+  if (/\b(idea|concept|brainstorm)\b/.test(lower)) tags.push('idea')
+  if (/\b(work|meeting|project)\b/.test(lower)) tags.push('work')
+  if (/\b(learn|study|course)\b/.test(lower)) tags.push('learning')
+
+  return tags.slice(0, 5)
 }
 
 // ─── Failover logic: z-ai → Groq → Gemini ───────────────────────────

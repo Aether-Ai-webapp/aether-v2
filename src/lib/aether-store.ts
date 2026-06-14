@@ -288,17 +288,18 @@ export const useAetherStore = create<AetherState>((set, get) => ({
           isAuthenticated: true,
           showAuthModal: false,
         })
-        // Check if Supabase tables exist
-        get().checkSupabaseTables()
-        // Execute any pending action that was queued
+        // CRITICAL: Await Supabase tables check before running pending actions or fetching data
+        // Without this, supabaseReady is still false when saveMemory/fetchMemories run
+        await get().checkSupabaseTables()
+        // Execute any pending action that was queued (e.g., deferred capture)
         const pending = get().pendingAction
         if (pending) {
-          pending()
+          await pending()
           set({ pendingAction: null })
         }
-        // Re-fetch data from Supabase
-        get().fetchMemories()
-        get().fetchCollections()
+        // Re-fetch data from Supabase (now that supabaseReady is set)
+        await get().fetchMemories()
+        await get().fetchCollections()
         return true
       }
       return false
@@ -327,14 +328,17 @@ export const useAetherStore = create<AetherState>((set, get) => ({
           isAuthenticated: true,
           showAuthModal: false,
         })
-        // Check if Supabase tables exist
-        get().checkSupabaseTables()
+        // CRITICAL: Await Supabase tables check before running pending actions or fetching data
+        await get().checkSupabaseTables()
         // Execute any pending action
         const pending = get().pendingAction
         if (pending) {
-          pending()
+          await pending()
           set({ pendingAction: null })
         }
+        // Re-fetch data from Supabase (now that supabaseReady is set)
+        await get().fetchMemories()
+        await get().fetchCollections()
         return true
       }
       return false
@@ -365,14 +369,25 @@ export const useAetherStore = create<AetherState>((set, get) => ({
         const data = await res.json()
         if (data.authenticated && data.user) {
           set({ user: data.user, isAuthenticated: true })
-          // Check Supabase tables + fetch data
-          get().checkSupabaseTables()
+          // CRITICAL: Await Supabase tables check, THEN fetch data
+          // Without this, fetchMemories runs while supabaseReady is still false
+          await get().checkSupabaseTables()
+          // Now fetch data with correct supabaseReady state
+          await Promise.all([
+            get().fetchMemories(),
+            get().fetchCollections(),
+          ])
           return
         }
       }
     } catch { /* ignore */ }
     // No Supabase session — stay as local user (not gated)
     set({ isAuthenticated: false })
+    // Still try to fetch from Prisma API for local data
+    await Promise.all([
+      get().fetchMemories(),
+      get().fetchCollections(),
+    ])
   },
 
   // Check if Supabase tables exist for the current user
@@ -565,47 +580,55 @@ export const useAetherStore = create<AetherState>((set, get) => ({
         body: JSON.stringify({ content: `${title} ${content}`.slice(0, 1000) }),
       })
 
-      if (!res.ok) return
-
-      const { tags: aiTags, category } = await res.json()
-      if (!aiTags || !aiTags.length) return
-
-      const state = get()
-
-      // Update in Supabase if authenticated + ready
-      if (state.isAuthenticated && state.supabaseReady) {
-        try {
-          const supabase = await getSupabaseBrowser()
-          const { data: { session } } = await supabase.auth.getSession()
-          if (session) {
-            await supabase
-              .from('memories')
-              .update({ tags: aiTags.join(',') })
-              .eq('id', memoryId)
-          }
-        } catch {
-          // Silently fail Supabase update — local state still updates
-        }
-      } else {
-        // Update via Prisma API
-        try {
-          await fetch(`/api/memories/${memoryId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tags: aiTags }),
-          })
-        } catch {
-          // Silently fail
-        }
+      if (!res.ok) {
+        console.warn('Auto-tag API returned:', res.status)
+        return
       }
 
-      // Update the local state so tags appear immediately
-      get().updateMemory(memoryId, { tags: aiTags })
+      const { tags: aiTags, category } = await res.json()
+
+      // FIX: Proceed even if tags are empty — category assignment is still valuable
+      const currentState = get()
+
+      // ── Update tags in DB if AI returned any ──
+      if (aiTags && aiTags.length > 0) {
+        if (currentState.isAuthenticated && currentState.supabaseReady) {
+          try {
+            const supabase = await getSupabaseBrowser()
+            const { data: { session } } = await supabase.auth.getSession()
+            if (session) {
+              await supabase
+                .from('memories')
+                .update({ tags: aiTags.join(',') })
+                .eq('id', memoryId)
+            }
+          } catch {
+            // Silently fail Supabase update — local state still updates
+          }
+        } else {
+          // Update via Prisma API
+          try {
+            await fetch(`/api/memories/${memoryId}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ tags: aiTags }),
+            })
+          } catch {
+            // Silently fail
+          }
+        }
+
+        // Update the local state so tags appear immediately
+        get().updateMemory(memoryId, { tags: aiTags })
+      }
 
       // ── AUTO-COLLECTION: Create collection from AI category if it doesn't exist ──
+      // FIX: Use get().collections for FRESH state (not stale snapshot from top of function)
       if (category?.trim()) {
         const normalizedCategory = category.trim()
-        const existingCollection = state.collections.find(
+        // CRITICAL: Read fresh collections from store — previous auto-tag calls may have added new ones
+        const freshCollections = get().collections
+        const existingCollection = freshCollections.find(
           (c) => c.name.toLowerCase() === normalizedCategory.toLowerCase()
         )
 
@@ -619,7 +642,8 @@ export const useAetherStore = create<AetherState>((set, get) => ({
 
           if (newCollection) {
             // Link the memory to the new collection
-            if (state.isAuthenticated && state.supabaseReady) {
+            const linkState = get()
+            if (linkState.isAuthenticated && linkState.supabaseReady) {
               try {
                 const supabase = await getSupabaseBrowser()
                 const { data: { session } } = await supabase.auth.getSession()
@@ -629,8 +653,8 @@ export const useAetherStore = create<AetherState>((set, get) => ({
                     collection_id: newCollection.id,
                   })
                 }
-              } catch {
-                // Silently fail
+              } catch (linkErr) {
+                console.warn('Failed to link memory to collection:', linkErr instanceof Error ? linkErr.message : 'Unknown')
               }
             } else {
               try {
@@ -656,15 +680,19 @@ export const useAetherStore = create<AetherState>((set, get) => ({
                 }],
               })
             }
+
+            // Re-fetch collections to ensure store stays in sync with DB
+            get().fetchCollections()
           }
         } else {
           // Collection already exists — link the memory to it
-          const alreadyLinked = state.memories
-            .find((m) => m.id === memoryId)
-            ?.collections.some((c) => c.id === existingCollection.id)
+          // FIX: Read fresh memory from store for already-linked check
+          const freshMemory = get().memories.find((m) => m.id === memoryId)
+          const alreadyLinked = freshMemory?.collections.some((c) => c.id === existingCollection.id)
 
           if (!alreadyLinked) {
-            if (state.isAuthenticated && state.supabaseReady) {
+            const linkState = get()
+            if (linkState.isAuthenticated && linkState.supabaseReady) {
               try {
                 const supabase = await getSupabaseBrowser()
                 const { data: { session } } = await supabase.auth.getSession()
@@ -674,8 +702,8 @@ export const useAetherStore = create<AetherState>((set, get) => ({
                     collection_id: existingCollection.id,
                   })
                 }
-              } catch {
-                // Silently fail
+              } catch (linkErr) {
+                console.warn('Failed to link memory to existing collection:', linkErr instanceof Error ? linkErr.message : 'Unknown')
               }
             } else {
               try {
@@ -704,8 +732,9 @@ export const useAetherStore = create<AetherState>((set, get) => ({
           }
         }
       }
-    } catch {
+    } catch (err) {
       // Non-blocking: never fail the save flow
+      console.warn('backgroundAutoTag failed:', err instanceof Error ? err.message : 'Unknown')
     }
   },
 
@@ -901,12 +930,12 @@ export const useAetherStore = create<AetherState>((set, get) => ({
         // Optimistic UI: add to store instantly
         get().addMemory(memory)
 
-        // ── STEP 2: Deferred AI tagging — ONLY if not a short note with local tags ──
-        if (content?.trim() && !isShortNote) {
+        // ── STEP 2: ALWAYS run AI auto-tagging (for category assignment + collections) ──
+        if (content?.trim()) {
           get().backgroundAutoTag(memory.id, content, title || '')
         }
 
-        // ── STEP 3: AI summary generation (background, non-blocking) ──
+        // ── STEP 3: AI summary generation — skip for short notes (saves tokens) ──
         if (content?.trim() && !isShortNote) {
           get().backgroundAutoSummary(memory.id, content)
         }
@@ -945,12 +974,12 @@ export const useAetherStore = create<AetherState>((set, get) => ({
         const memory: Memory = await res.json()
         get().addMemory(memory)
 
-        // ── STEP 2: Deferred AI tagging — ONLY if not a short note with local tags ──
-        if (content?.trim() && !isShortNote) {
+        // ── STEP 2: ALWAYS run AI auto-tagging (for category assignment + collections) ──
+        if (content?.trim()) {
           get().backgroundAutoTag(memory.id, content, title || '')
         }
 
-        // ── STEP 3: AI summary generation (background, non-blocking) ──
+        // ── STEP 3: AI summary generation — skip for short notes (saves tokens) ──
         if (content?.trim() && !isShortNote) {
           get().backgroundAutoSummary(memory.id, content)
         }

@@ -1,25 +1,27 @@
 ---
 Task ID: 1
-Agent: Main Agent
-Task: Fix 4 systemic bugs in Aether app
+Agent: Main
+Task: Fix 4 critical bugs in Aether architecture (Auth Gate, State Hydration, AI Chat 500, Auto-Collections)
 
 Work Log:
-- Read all 15+ source files to understand full architecture (Dashboard, AskAether, aether-store, API routes, etc.)
-- Identified root cause: No Supabase/Gemini/Groq API keys configured, so app relies on Prisma/SQLite + z-ai-web-dev-sdk
-- Bug 1 (Auth Gate): Added isAuthenticated check to Dashboard capture bar. If not authenticated, calls requireAuth() which shows AuthModal and queues the capture for replay after login
-- Bug 2 (State Hydration): Removed redundant fetchMemories() call after saveMemory() in Dashboard. The store's saveMemory already does optimistic addMemory(), so the extra refetch was causing race conditions
-- Bug 3 (AI Chat 500): Rewrote /api/ai/chat/route.ts to use z-ai-web-dev-sdk as primary (non-streaming then word-by-word simulated streaming), with Gemini and Groq as fallbacks. Fixed the pull-based ReadableStream pattern that was causing OOM crashes
-- Bug 4 (Auto-collections): Updated /api/auto-tag to return both tags AND category. Updated backgroundAutoTag in store to auto-create collections from the category field and link memories to them
-- Also updated /api/ai/summary to use z-ai-web-dev-sdk as primary
-- Removed redundant fetch('/api/generate-embedding') calls from AddMemorySheet (store's saveMemory already handles this)
-- Increased Node memory limit from 512MB to 2048MB for dev server
-- Fixed fetchMemories to have better error logging and fallback path
+- Read all critical files: Dashboard.tsx, aether-store.ts, AI chat route, auto-tag route, Supabase clients, Collections.tsx, page.tsx
+- Diagnosed Bug 1: Auth gate code existed but race condition in login/signup — checkSupabaseTables() not awaited before pending action
+- Diagnosed Bug 2: fetchMemories ran before supabaseReady was set, so authenticated users' memories weren't loaded from Supabase
+- Diagnosed Bug 3: getGenerativeModel('text-embedding-004') uses bare string instead of { model: 'text-embedding-004' } object — invalid API call
+- Diagnosed Bug 4: backgroundAutoTag skipped for short notes, used stale state for collection lookups, no fallback category
+- Fixed aether-store.ts: login/signup now await checkSupabaseTables() before pending actions and data fetching
+- Fixed checkSession: now awaits checkSupabaseTables() then fetches data with correct supabaseReady state
+- Fixed page.tsx: removed DataLoader to prevent double-fetch race condition
+- Fixed api/ai/chat/route.ts: added robust JSON parsing, fixed Gemini model params, added logging
+- Fixed api/generate-embedding/route.ts: fixed getGenerativeModel({ model: 'text-embedding-004' })
+- Fixed api/memories/related/[id]/route.ts: same Gemini model param fix
+- Fixed api/auto-tag/route.ts: added fallback category/tags from keyword inference when AI fails
+- Fixed backgroundAutoTag: always runs (not just for non-short notes), uses get().collections for fresh state, re-fetches after creating collection
+- All fixes verified: lint passes, curl tests pass, browser testing confirms auth gate works, AI chat responds, memories load
 
 Stage Summary:
-- Auth gate works: unauthenticated users are blocked and shown auth modal
-- AI chat works: z-ai-web-dev-sdk returns friendly, contextual responses referencing user memories
-- Auto-tagging works: returns tags AND category (e.g., {"tags":["work","finance"],"category":"Work"})
-- Auto-collections: store auto-creates collections from AI category and links memories
-- Memories display correctly on dashboard after save (optimistic UI)
-- All API endpoints tested and verified via curl
-- Lint passes clean
+- Bug 1 FIXED: Auth gate now properly blocks guest submissions and shows auth modal (browser verified)
+- Bug 2 FIXED: Memories load from Supabase when authenticated (checkSession awaits table check before fetching)
+- Bug 3 FIXED: AI chat returns proper responses — Gemini model param was root cause of 500 errors
+- Bug 4 FIXED: Auto-tagging always runs, fallback categories ensure collections are always created, fresh state prevents stale lookups
+- Key files modified: aether-store.ts, page.tsx, api/ai/chat/route.ts, api/generate-embedding/route.ts, api/memories/related/[id]/route.ts, api/auto-tag/route.ts

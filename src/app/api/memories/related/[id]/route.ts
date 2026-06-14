@@ -54,7 +54,8 @@ export async function GET(
       try {
         const { GoogleGenerativeAI } = await import('@google/generative-ai')
         const genAI = new GoogleGenerativeAI(geminiKey)
-        const embeddingModel = genAI.getGenerativeModel('text-embedding-004')
+        // FIX: Must pass object with 'model' property — bare string is invalid API
+        const embeddingModel = genAI.getGenerativeModel({ model: 'text-embedding-004' })
         const embedResult = await embeddingModel.embedContent(targetMemory.content.slice(0, 2000))
         const queryEmbedding = embedResult.embedding.values
         

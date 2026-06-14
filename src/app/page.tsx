@@ -8,6 +8,7 @@ import { AskAether } from '@/components/aether/AskAether'
 import { Collections } from '@/components/aether/Collections'
 import { Memories } from '@/components/aether/Memories'
 import { Settings } from '@/components/aether/Settings'
+
 function ViewRouter() {
   const currentView = useAetherStore((s) => s.currentView)
 
@@ -22,32 +23,22 @@ function ViewRouter() {
   return <>{views[currentView] || <Dashboard />}</>
 }
 
-function DataLoader({ children }: { children: React.ReactNode }) {
-  const { fetchMemories, fetchCollections } = useAetherStore()
-
-  useEffect(() => {
-    // Fire and forget — UI renders immediately, data loads in background
-    fetchMemories()
-    fetchCollections()
-  }, [fetchMemories, fetchCollections])
-
-  return <>{children}</>
-}
-
 export default function Home() {
   const { checkSession } = useAetherStore()
 
   useEffect(() => {
-    // Check auth session on mount — UI is already visible
+    // checkSession now handles the FULL initialization flow:
+    // 1. Checks if user is authenticated
+    // 2. If yes: awaits checkSupabaseTables(), then fetches memories + collections from Supabase
+    // 3. If no: fetches from Prisma API as fallback
+    // This prevents the race condition where fetchMemories ran before supabaseReady was set
     checkSession()
   }, [checkSession])
 
   // The app IS the landing page. Render immediately.
   return (
-    <DataLoader>
-      <AppShell>
-        <ViewRouter />
-      </AppShell>
-    </DataLoader>
+    <AppShell>
+      <ViewRouter />
+    </AppShell>
   )
 }
