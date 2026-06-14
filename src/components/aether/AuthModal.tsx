@@ -63,6 +63,23 @@ export function AuthModal() {
     }
   }
 
+  const inputClasses = cn(
+    'pl-9 h-11',
+    isDark
+      ? 'bg-zinc-800/40 border-white/[0.06] text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-500/40 focus-visible:ring-indigo-500/15'
+      : 'bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-purple-400 focus-visible:ring-purple-400/20'
+  )
+
+  const iconClasses = cn(
+    'absolute left-3 top-1/2 -translate-y-1/2 size-4',
+    isDark ? 'text-zinc-500' : 'text-gray-400'
+  )
+
+  const labelClasses = cn(
+    'text-xs font-medium',
+    isDark ? 'text-zinc-500' : 'text-gray-600'
+  )
+
   return (
     <AnimatePresence>
       {showAuthModal && (
@@ -73,7 +90,7 @@ export function AuthModal() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-md"
+            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md"
             onClick={handleClose}
           />
 
@@ -90,7 +107,7 @@ export function AuthModal() {
               className={cn(
                 'relative w-full max-w-md rounded-2xl p-8 shadow-2xl',
                 isDark
-                  ? 'bg-[#060812]/95 backdrop-blur-xl border border-white/[0.06] shadow-purple-500/10'
+                  ? 'bg-[#16171B]/95 backdrop-blur-xl border border-white/[0.06] shadow-indigo-500/10'
                   : 'bg-white/95 backdrop-blur-xl border border-gray-200 shadow-purple-500/5'
               )}
               onClick={(e) => e.stopPropagation()}
@@ -101,7 +118,7 @@ export function AuthModal() {
                 className={cn(
                   'absolute top-4 right-4 size-8 rounded-full flex items-center justify-center transition-colors',
                   isDark
-                    ? 'bg-white/[0.04] hover:bg-white/[0.08] text-white/40'
+                    ? 'bg-zinc-800/40 hover:bg-zinc-800/60 text-zinc-500'
                     : 'bg-gray-100 hover:bg-gray-200 text-gray-500'
                 )}
               >
@@ -114,21 +131,21 @@ export function AuthModal() {
                   initial={{ scale: 0.8, rotate: -5 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                  className="size-14 rounded-2xl bg-gradient-to-br from-purple-400 via-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/25 mb-4"
+                  className="size-14 rounded-2xl bg-gradient-to-br from-purple-600 via-indigo-500 to-blue-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 mb-4"
                 >
                   <Brain className="size-7 text-white" />
                 </motion.div>
                 <h2 className={cn(
-                  'text-2xl font-bold',
+                  'text-2xl font-bold tracking-tight',
                   isDark
-                    ? 'bg-gradient-to-r from-white to-purple-100 bg-clip-text text-transparent'
+                    ? 'bg-gradient-to-b from-white to-zinc-400 bg-clip-text text-transparent'
                     : 'text-gray-900'
                 )}>
                   {mode === 'login' ? 'Welcome back' : 'Create account'}
                 </h2>
                 <p className={cn(
                   'text-sm mt-1',
-                  isDark ? 'text-white/30' : 'text-gray-500'
+                  isDark ? 'text-zinc-500' : 'text-gray-500'
                 )}>
                   {mode === 'login'
                     ? 'Sign in to sync your memories across devices'
@@ -140,25 +157,14 @@ export function AuthModal() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 {mode === 'signup' && (
                   <div className="space-y-2">
-                    <Label className={cn(
-                      'text-xs font-medium',
-                      isDark ? 'text-white/50' : 'text-gray-600'
-                    )}>Name</Label>
+                    <Label className={labelClasses}>Name</Label>
                     <div className="relative">
-                      <User className={cn(
-                        'absolute left-3 top-1/2 -translate-y-1/2 size-4',
-                        isDark ? 'text-white/20' : 'text-gray-400'
-                      )} />
+                      <User className={iconClasses} />
                       <Input
                         placeholder="Your name"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className={cn(
-                          'pl-9 h-11',
-                          isDark
-                            ? 'bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/20 focus:border-purple-500/30 focus-visible:ring-purple-500/15'
-                            : 'bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-purple-400 focus-visible:ring-purple-400/20'
-                        )}
+                        className={inputClasses}
                         disabled={isLoading}
                       />
                     </div>
@@ -166,26 +172,15 @@ export function AuthModal() {
                 )}
 
                 <div className="space-y-2">
-                  <Label className={cn(
-                    'text-xs font-medium',
-                    isDark ? 'text-white/50' : 'text-gray-600'
-                  )}>Email</Label>
+                  <Label className={labelClasses}>Email</Label>
                   <div className="relative">
-                    <Mail className={cn(
-                      'absolute left-3 top-1/2 -translate-y-1/2 size-4',
-                      isDark ? 'text-white/20' : 'text-gray-400'
-                    )} />
+                    <Mail className={iconClasses} />
                     <Input
                       type="email"
                       placeholder="you@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className={cn(
-                        'pl-9 h-11',
-                        isDark
-                          ? 'bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/20 focus:border-purple-500/30 focus-visible:ring-purple-500/15'
-                          : 'bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-purple-400 focus-visible:ring-purple-400/20'
-                      )}
+                      className={inputClasses}
                       disabled={isLoading}
                       autoFocus
                     />
@@ -193,26 +188,15 @@ export function AuthModal() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className={cn(
-                    'text-xs font-medium',
-                    isDark ? 'text-white/50' : 'text-gray-600'
-                  )}>Password</Label>
+                  <Label className={labelClasses}>Password</Label>
                   <div className="relative">
-                    <Lock className={cn(
-                      'absolute left-3 top-1/2 -translate-y-1/2 size-4',
-                      isDark ? 'text-white/20' : 'text-gray-400'
-                    )} />
+                    <Lock className={iconClasses} />
                     <Input
                       type="password"
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className={cn(
-                        'pl-9 h-11',
-                        isDark
-                          ? 'bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/20 focus:border-purple-500/30 focus-visible:ring-purple-500/15'
-                          : 'bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-purple-400 focus-visible:ring-purple-400/20'
-                      )}
+                      className={inputClasses}
                       disabled={isLoading}
                     />
                   </div>
@@ -225,9 +209,9 @@ export function AuthModal() {
                   whileTap={{ scale: 0.98 }}
                   className={cn(
                     'w-full flex items-center justify-center gap-2 h-11 rounded-xl font-semibold text-white transition-all duration-200',
-                    'bg-gradient-to-r from-purple-400 via-violet-500 to-indigo-500',
-                    'hover:from-purple-300 hover:via-violet-400 hover:to-indigo-400',
-                    'shadow-[0_0_24px_-5px_rgba(168,85,247,0.4)] hover:shadow-[0_0_32px_-5px_rgba(168,85,247,0.6)]',
+                    'bg-gradient-to-r from-purple-600 via-indigo-500 to-blue-500',
+                    'hover:from-purple-500 hover:via-indigo-400 hover:to-blue-400',
+                    'shadow-[0_0_24px_-5px_rgba(99,102,241,0.35)] hover:shadow-[0_0_32px_-5px_rgba(99,102,241,0.5)]',
                     'disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none'
                   )}
                 >
@@ -252,7 +236,7 @@ export function AuthModal() {
                   className={cn(
                     'text-xs transition-colors',
                     isDark
-                      ? 'text-white/25 hover:text-white/50'
+                      ? 'text-zinc-500 hover:text-zinc-300'
                       : 'text-gray-400 hover:text-gray-700'
                   )}
                   disabled={isLoading}

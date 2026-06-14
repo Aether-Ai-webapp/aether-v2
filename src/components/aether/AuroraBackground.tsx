@@ -20,11 +20,11 @@ export function AuroraBackground({ isDark }: { isDark: boolean }) {
               y: [0, -60, 30, -20, 0],
               scale: [1, 1.15, 0.9, 1.05, 1],
               backgroundColor: [
-                'rgba(126, 34, 206, 0.12)',   // purple-600
-                'rgba(139, 92, 246, 0.15)',    // violet-500
-                'rgba(109, 40, 217, 0.10)',    // purple-700
-                'rgba(168, 85, 247, 0.13)',    // purple-500
-                'rgba(126, 34, 206, 0.12)',    // back to start
+                'rgba(79, 70, 229, 0.12)',    // indigo-600
+                'rgba(99, 102, 241, 0.15)',    // indigo-500
+                'rgba(67, 56, 202, 0.10)',      // indigo-700
+                'rgba(99, 102, 241, 0.13)',     // indigo-500
+                'rgba(79, 70, 229, 0.12)',      // back to start
               ],
             }}
             transition={{
@@ -43,9 +43,9 @@ export function AuroraBackground({ isDark }: { isDark: boolean }) {
               scale: [1, 0.85, 1.2, 0.95, 1],
               backgroundColor: [
                 'rgba(79, 70, 229, 0.10)',    // indigo-600
-                'rgba(91, 33, 182, 0.14)',     // purple-800
-                'rgba(124, 58, 237, 0.08)',    // violet-600
-                'rgba(67, 56, 202, 0.12)',     // indigo-700
+                'rgba(67, 56, 202, 0.14)',     // indigo-700
+                'rgba(59, 130, 246, 0.08)',    // blue-500
+                'rgba(99, 102, 241, 0.12)',    // indigo-500
                 'rgba(79, 70, 229, 0.10)',     // back to start
               ],
             }}
@@ -64,11 +64,11 @@ export function AuroraBackground({ isDark }: { isDark: boolean }) {
               y: [0, -30, 45, -15, 0],
               scale: [1, 1.25, 0.8, 1.1, 1],
               backgroundColor: [
-                'rgba(139, 92, 246, 0.08)',    // violet-500
-                'rgba(168, 85, 247, 0.12)',     // purple-500
-                'rgba(55, 48, 163, 0.08)',      // indigo-800
-                'rgba(147, 51, 234, 0.10)',     // purple-600
-                'rgba(139, 92, 246, 0.08)',     // back to start
+                'rgba(99, 102, 241, 0.08)',   // indigo-500
+                'rgba(79, 70, 229, 0.12)',     // indigo-600
+                'rgba(55, 48, 163, 0.08)',     // indigo-800
+                'rgba(59, 130, 246, 0.10)',    // blue-500
+                'rgba(99, 102, 241, 0.08)',    // back to start
               ],
             }}
             transition={{
@@ -87,9 +87,9 @@ export function AuroraBackground({ isDark }: { isDark: boolean }) {
               scale: [1, 1.1, 0.9, 1.05, 1],
               backgroundColor: [
                 'rgba(49, 46, 129, 0.08)',     // indigo-700
-                'rgba(91, 33, 182, 0.12)',      // purple-800
-                'rgba(109, 40, 217, 0.06)',     // purple-700
-                'rgba(55, 48, 163, 0.10)',      // indigo-800
+                'rgba(55, 48, 163, 0.12)',      // indigo-800
+                'rgba(37, 99, 235, 0.06)',      // blue-600
+                'rgba(67, 56, 202, 0.10)',      // indigo-700
                 'rgba(49, 46, 129, 0.08)',      // back to start
               ],
             }}

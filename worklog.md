@@ -66,3 +66,56 @@ Stage Summary:
 - Auth gate verified working: blocks guest saves, shows modal, queues pending action
 - Memory detail overlay already exists and works (title, summary, tags, related, PDF, delete)
 - Key files modified: aether-store.ts, /api/memories/[id]/route.ts, Dashboard.tsx
+
+---
+Task ID: 3
+Agent: Main
+Task: Apply Premium Obsidian Jet design system to Aether core interface
+
+Work Log:
+- Applied comprehensive "Premium Obsidian Jet" design system across 6 files
+- Dashboard.tsx: 44+ CSS class changes
+  - Backgrounds: bg-white/[0.0x] → bg-[#16171B]/80 with backdrop-blur-md
+  - Text hierarchy: text-white/0x → text-zinc-100/300/500 system
+  - Headings: bg-gradient-to-r from-white → bg-gradient-to-b from-white to-zinc-400
+  - Capture bar: glassy bg-[#16171B]/80 + focus-within:ring-1 ring-purple-500/50 + ambient glow
+  - Send button: from-purple-400 to-violet-500 → from-purple-600 via-indigo-500 to-blue-500 (cosmic gradient)
+  - Memory cards: bg-[#16171B]/60 + hover:bg-zinc-800/40 hover:border-zinc-700
+  - Tags: purple → indigo shift (bg-indigo-500/10 text-indigo-400)
+  - Modal: bg-[#16171B]/95 + indigo-shifted AI summary section
+  - Particles: violet-600 → indigo-500 → blue-500 cosmic spectrum
+  - Skeleton: bg-zinc-800/30 + bg-zinc-700/20
+- AppShell.tsx: 18 style changes
+  - Background: bg-[#020408] → bg-[#0B0C0E] (charcoal-obsidian)
+  - Sidebar: bg-[#0B0C0E]/70 + border-white/[0.06]
+  - Nav active: purple → indigo shift (bg-indigo-500/10, border-indigo-400/60)
+  - All muted text: text-white/0x → text-zinc-500 system
+  - Mobile nav: same indigo shift
+- AuthModal.tsx: Full rewrite with shared input classes
+  - Panel: bg-[#16171B]/95 + indigo accent
+  - Heading: bg-gradient-to-b from-white to-zinc-400
+  - Inputs: bg-zinc-800/40 + placeholder:text-zinc-500 + focus:border-indigo-500/40
+  - Submit button: cosmic gradient from-purple-600 via-indigo-500 to-blue-500
+  - Logo: cosmic gradient icon + indigo-500 shadow
+- globals.css: Dark theme CSS variables updated
+  - --background: #08070b → #0B0C0E
+  - --foreground: rgba(255,255,255,0.9) → #f4f4f5 (zinc-100)
+  - --primary: #9333ea → #6366f1 (indigo-500)
+  - --card: rgba(255,255,255,0.03) → rgba(22,23,27,0.8) (#16171B/80)
+  - --muted-foreground: rgba(255,255,255,0.4) → #71717a (zinc-500)
+  - All ring/sidebar/accent vars shifted to indigo-500
+- AuroraBackground.tsx: Nebula colors shifted from purple → indigo/blue cosmic spectrum
+- StarField.tsx: Star glow colors shifted to cooler blue-white (rgba(160,180,255) / rgba(200,210,255))
+- Verified with Agent Browser: no console errors, clean lint, all interactions preserved
+
+Stage Summary:
+- Complete visual overhaul: Premium Obsidian Jet dark mode applied
+- Rich charcoal-obsidian base (#0B0C0E) replaces pitch black
+- Glassy surface containers (#16171B/80) with backdrop-blur throughout
+- Cosmic gradient (purple-600 → indigo-500 → blue-500) for primary actions
+- Zinc-based text hierarchy (zinc-100/300/500) replaces white opacity system
+- Indigo-shifted accents across nav, tags, AI summary, buttons
+- Capture bar feels alive with ring glow + ambient shadow on focus
+- Memory cards lift and glow on hover with springy transitions
+- All logic, state, hooks, and API calls completely untouched
+- Key files modified: Dashboard.tsx, AppShell.tsx, AuthModal.tsx, globals.css, AuroraBackground.tsx, StarField.tsx

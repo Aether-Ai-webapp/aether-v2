@@ -61,7 +61,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className={cn(
       'min-h-screen flex flex-col transition-theme relative overflow-hidden',
-      isDark ? 'bg-[#020408] text-white' : 'bg-[#f8f9fc] text-gray-900'
+      isDark ? 'bg-[#0B0C0E] text-zinc-100' : 'bg-[#f8f9fc] text-gray-900'
     )}>
       {/* ── Star Field ─────────────────────────────────────────────── */}
       <StarField isDark={isDark} />
@@ -77,7 +77,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               'h-screen fixed left-0 top-0 z-40 flex flex-col transition-all duration-300',
               sidebarExpanded ? 'w-64' : 'w-20',
               isDark
-                ? 'bg-[#020408]/60 backdrop-blur-2xl border-r border-white/[0.03]'
+                ? 'bg-[#0B0C0E]/70 backdrop-blur-2xl border-r border-white/[0.06]'
                 : 'bg-white/70 backdrop-blur-2xl border-r border-gray-200/50'
             )}
             onMouseEnter={() => setSidebarExpanded(true)}
@@ -87,7 +87,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className={cn(
               'flex items-center justify-between gap-2 h-16 shrink-0',
               sidebarExpanded ? 'px-4' : 'px-0 justify-center',
-              isDark ? 'border-b border-white/[0.03]' : 'border-b border-gray-200/50'
+              isDark ? 'border-b border-white/[0.06]' : 'border-b border-gray-200/50'
             )}>
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className={cn(
@@ -106,7 +106,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       className={cn(
                         'text-xl font-bold whitespace-nowrap overflow-hidden bg-clip-text text-transparent',
                         isDark
-                          ? 'bg-gradient-to-r from-purple-300 via-violet-300 to-indigo-300'
+                          ? 'bg-gradient-to-r from-purple-400 via-indigo-400 to-blue-400'
                           : 'bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-600'
                       )}
                     >
@@ -132,7 +132,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         size="sm"
                         className={cn(
                           'h-7 text-xs gap-1 px-2',
-                          isDark ? 'text-white/25 hover:text-white/60 hover:bg-white/[0.03]' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100/60'
+                          isDark ? 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/40' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100/60'
                         )}
                         onClick={handleSignOut}
                       >
@@ -145,7 +145,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         size="sm"
                         className={cn(
                           'h-7 text-xs gap-1 px-2',
-                          isDark ? 'text-white/25 hover:text-white/60 hover:bg-white/[0.03]' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100/60'
+                          isDark ? 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/40' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100/60'
                         )}
                         onClick={() => setShowAuthModal(true)}
                       >
@@ -175,17 +175,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                             'flex items-center gap-3 rounded-xl p-3 text-sm font-medium transition-all duration-200 w-full',
                             isActive
                               ? isDark
-                                ? 'text-white/90 bg-gradient-to-r from-purple-500/10 via-violet-500/8 to-transparent shadow-[0_0_20px_-5px_rgba(168,85,247,0.2)] border-r-2 border-purple-400/60'
+                                ? 'text-zinc-100 bg-gradient-to-r from-indigo-500/10 via-indigo-500/5 to-transparent shadow-[0_0_20px_-5px_rgba(99,102,241,0.15)] border-r-2 border-indigo-400/60'
                                 : 'text-purple-700 bg-gradient-to-r from-purple-50 via-violet-50 to-transparent shadow-[0_0_20px_-5px_rgba(168,85,247,0.15)] border-r-2 border-purple-500'
                               : isDark
-                                ? 'text-white/25 hover:text-white/60 hover:bg-white/[0.03]'
+                                ? 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/40'
                                 : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100/60'
                           )}
                         >
                           <Icon className={cn(
                             'w-5 h-5 shrink-0',
                             isActive
-                              ? isDark ? 'text-purple-400' : 'text-purple-600'
+                              ? isDark ? 'text-indigo-400' : 'text-purple-600'
                               : ''
                           )} />
                           <AnimatePresence>
@@ -217,12 +217,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {/* Bottom: auth status */}
             <div className={cn(
               'p-3 shrink-0',
-              isDark ? 'border-t border-white/[0.03]' : 'border-t border-gray-200/50'
+              isDark ? 'border-t border-white/[0.06]' : 'border-t border-gray-200/50'
             )}>
               {isAuthenticated && user && sidebarExpanded && (
                 <div className={cn(
                   'text-[11px] px-2 truncate',
-                  isDark ? 'text-white/15' : 'text-gray-400'
+                  isDark ? 'text-zinc-500' : 'text-gray-400'
                 )}>
                   {user.email}
                 </div>
@@ -243,7 +243,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className={cn(
               'flex items-center justify-between px-4 h-12 shrink-0',
               isDark
-                ? 'bg-[#020408]/70 backdrop-blur-xl border-b border-white/[0.03]'
+                ? 'bg-[#0B0C0E]/70 backdrop-blur-xl border-b border-white/[0.06]'
                 : 'bg-white/70 backdrop-blur-xl border-b border-gray-200/50'
             )}>
               <div className="flex items-center gap-2.5">
@@ -253,7 +253,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <span className={cn(
                   'font-bold text-sm bg-clip-text text-transparent',
                   isDark
-                    ? 'bg-gradient-to-r from-purple-300 via-violet-300 to-indigo-300'
+                    ? 'bg-gradient-to-r from-purple-400 via-indigo-400 to-blue-400'
                     : 'bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-600'
                 )}>
                   AETHER
@@ -265,7 +265,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   size="sm"
                   className={cn(
                     'h-7 text-xs gap-1 px-2',
-                    isDark ? 'text-white/25 hover:text-white/60' : 'text-gray-400 hover:text-gray-700'
+                    isDark ? 'text-zinc-500 hover:text-zinc-300' : 'text-gray-400 hover:text-gray-700'
                   )}
                   onClick={handleSignOut}
                 >
@@ -278,7 +278,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   size="sm"
                   className={cn(
                     'h-7 text-xs gap-1 px-2',
-                    isDark ? 'text-white/25 hover:text-white/60' : 'text-gray-400 hover:text-gray-700'
+                    isDark ? 'text-zinc-500 hover:text-zinc-300' : 'text-gray-400 hover:text-gray-700'
                   )}
                   onClick={() => setShowAuthModal(true)}
                 >
@@ -311,7 +311,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <nav className={cn(
           'fixed bottom-0 left-0 right-0 z-40 safe-area-bottom transition-theme',
           isDark
-            ? 'bg-[#020408]/80 backdrop-blur-2xl border-t border-white/[0.03]'
+            ? 'bg-[#0B0C0E]/80 backdrop-blur-2xl border-t border-white/[0.06]'
             : 'bg-white/80 backdrop-blur-2xl border-t border-gray-200/50'
         )}>
           <div className="flex items-center justify-around h-16 px-2 relative">
@@ -326,10 +326,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     'flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-lg transition-all min-w-[48px] min-h-[44px]',
                     isActive
                       ? isDark
-                        ? 'text-purple-400'
+                        ? 'text-indigo-400'
                         : 'text-purple-600'
                       : isDark
-                        ? 'text-white/25'
+                        ? 'text-zinc-500'
                         : 'text-gray-400'
                   )}
                 >
@@ -345,7 +345,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       layoutId="mobileNavIndicator"
                       className={cn(
                         'absolute -top-px left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full',
-                        isDark ? 'bg-purple-400/60' : 'bg-purple-600'
+                        isDark ? 'bg-indigo-400/60' : 'bg-purple-600'
                       )}
                       transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                     />

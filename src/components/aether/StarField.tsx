@@ -68,13 +68,13 @@ export function StarField({ isDark }: { isDark: boolean }) {
         if (star.size > 1.2) {
           ctx.beginPath()
           ctx.arc(star.x, star.y, star.size * 3, 0, Math.PI * 2)
-          ctx.fillStyle = `rgba(180, 160, 255, ${alpha * 0.08})`
+          ctx.fillStyle = `rgba(160, 180, 255, ${alpha * 0.08})`
           ctx.fill()
         }
 
         ctx.beginPath()
         ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2)
-        ctx.fillStyle = `rgba(220, 210, 255, ${alpha})`
+        ctx.fillStyle = `rgba(200, 210, 255, ${alpha})`
         ctx.fill()
       }
 
