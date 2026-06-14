@@ -64,20 +64,20 @@ export function AuthModal() {
   }
 
   const inputClasses = cn(
-    'pl-9 h-11',
+    'pl-10 h-12 rounded-xl text-sm font-medium transition-all duration-200',
     isDark
-      ? 'bg-zinc-800/40 border-white/[0.06] text-zinc-100 placeholder:text-zinc-500 focus:border-indigo-500/40 focus-visible:ring-indigo-500/15'
-      : 'bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-purple-400 focus-visible:ring-purple-400/20'
+      ? 'bg-zinc-900/60 border-white/[0.08] text-zinc-100 placeholder:text-zinc-600 focus:border-indigo-500/40 focus-visible:ring-indigo-500/15 focus-visible:ring-2'
+      : 'bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-purple-400 focus-visible:ring-purple-400/20 focus-visible:ring-2'
   )
 
   const iconClasses = cn(
-    'absolute left-3 top-1/2 -translate-y-1/2 size-4',
-    isDark ? 'text-zinc-500' : 'text-gray-400'
+    'absolute left-3.5 top-1/2 -translate-y-1/2 size-4',
+    isDark ? 'text-zinc-600' : 'text-gray-400'
   )
 
   const labelClasses = cn(
-    'text-xs font-medium',
-    isDark ? 'text-zinc-500' : 'text-gray-600'
+    'text-[10px] font-bold uppercase tracking-[0.15em]',
+    isDark ? 'text-zinc-600' : 'text-gray-500'
   )
 
   return (
@@ -90,25 +90,25 @@ export function AuthModal() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md"
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl"
             onClick={handleClose}
           />
 
           {/* Modal */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            initial={{ opacity: 0, scale: 0.9, y: 30, filter: 'blur(8px)' }}
+            animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, scale: 0.9, y: 30, filter: 'blur(8px)' }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.3, 1] }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div
               className={cn(
-                'relative w-full max-w-md rounded-2xl p-8 shadow-2xl',
+                'relative w-full max-w-md rounded-3xl p-8 shadow-2xl',
                 isDark
-                  ? 'bg-[#16171B]/95 backdrop-blur-xl border border-white/[0.06] shadow-indigo-500/10'
-                  : 'bg-white/95 backdrop-blur-xl border border-gray-200 shadow-purple-500/5'
+                  ? 'bg-gradient-to-b from-[#181A20]/98 to-[#0D0E12]/98 backdrop-blur-2xl border border-white/[0.08] shadow-[0_0_80px_-20px_rgba(99,102,241,0.25)]'
+                  : 'bg-white/98 backdrop-blur-2xl border border-gray-200 shadow-purple-500/5'
               )}
               onClick={(e) => e.stopPropagation()}
             >
@@ -116,10 +116,10 @@ export function AuthModal() {
               <button
                 onClick={handleClose}
                 className={cn(
-                  'absolute top-4 right-4 size-8 rounded-full flex items-center justify-center transition-colors',
+                  'absolute top-5 right-5 size-9 rounded-xl flex items-center justify-center transition-all duration-200',
                   isDark
-                    ? 'bg-zinc-800/40 hover:bg-zinc-800/60 text-zinc-500'
-                    : 'bg-gray-100 hover:bg-gray-200 text-gray-500'
+                    ? 'bg-zinc-900/80 border border-white/10 text-zinc-600 hover:text-zinc-300 hover:border-white/20'
+                    : 'bg-gray-100 hover:bg-gray-200 text-gray-400 hover:text-gray-600'
                 )}
               >
                 <X className="size-4" />
@@ -128,15 +128,15 @@ export function AuthModal() {
               {/* Header */}
               <div className="flex flex-col items-center mb-8">
                 <motion.div
-                  initial={{ scale: 0.8, rotate: -5 }}
+                  initial={{ scale: 0.7, rotate: -8 }}
                   animate={{ scale: 1, rotate: 0 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                  className="size-14 rounded-2xl bg-gradient-to-br from-purple-600 via-indigo-500 to-blue-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 mb-4"
+                  transition={{ type: 'spring', stiffness: 300, damping: 18 }}
+                  className="size-16 rounded-2xl bg-gradient-to-br from-purple-500 via-indigo-500 to-blue-600 flex items-center justify-center shadow-[0_0_30px_-5px_rgba(99,102,241,0.4)] mb-5"
                 >
-                  <Brain className="size-7 text-white" />
+                  <Brain className="size-8 text-white" />
                 </motion.div>
                 <h2 className={cn(
-                  'text-2xl font-bold tracking-tight',
+                  'text-2xl font-black tracking-tight',
                   isDark
                     ? 'bg-gradient-to-b from-white to-zinc-400 bg-clip-text text-transparent'
                     : 'text-gray-900'
@@ -144,8 +144,8 @@ export function AuthModal() {
                   {mode === 'login' ? 'Welcome back' : 'Create account'}
                 </h2>
                 <p className={cn(
-                  'text-sm mt-1',
-                  isDark ? 'text-zinc-500' : 'text-gray-500'
+                  'text-sm mt-1.5 font-medium',
+                  isDark ? 'text-zinc-600' : 'text-gray-400'
                 )}>
                   {mode === 'login'
                     ? 'Sign in to sync your memories across devices'
@@ -205,13 +205,14 @@ export function AuthModal() {
                 <motion.button
                   type="submit"
                   disabled={isLoading}
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                   className={cn(
-                    'w-full flex items-center justify-center gap-2 h-11 rounded-xl font-semibold text-white transition-all duration-200',
+                    'w-full flex items-center justify-center gap-2 h-12 rounded-xl font-bold text-white transition-all duration-200 mt-2',
                     'bg-gradient-to-r from-purple-600 via-indigo-500 to-blue-500',
                     'hover:from-purple-500 hover:via-indigo-400 hover:to-blue-400',
-                    'shadow-[0_0_24px_-5px_rgba(99,102,241,0.35)] hover:shadow-[0_0_32px_-5px_rgba(99,102,241,0.5)]',
+                    'shadow-[0_0_30px_-5px_rgba(99,102,241,0.4)] hover:shadow-[0_0_40px_-5px_rgba(99,102,241,0.6)]',
                     'disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none'
                   )}
                 >
@@ -234,9 +235,9 @@ export function AuthModal() {
                 <button
                   onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
                   className={cn(
-                    'text-xs transition-colors',
+                    'text-xs font-medium transition-colors',
                     isDark
-                      ? 'text-zinc-500 hover:text-zinc-300'
+                      ? 'text-zinc-600 hover:text-zinc-300'
                       : 'text-gray-400 hover:text-gray-700'
                   )}
                   disabled={isLoading}
