@@ -180,6 +180,8 @@ export function Dashboard() {
     deleteMemoryFromDB,
     darkMode,
     isLoading,
+    isAuthenticated,
+    requireAuth,
   } = useAetherStore()
 
   const [captureText, setCaptureText] = useState('')
@@ -223,6 +225,46 @@ export function Dashboard() {
     const text = captureText.trim()
     if (!text || isSaving) return
 
+    // ── AUTH GATE: Block submission if not signed in ──────────────────
+    if (!isAuthenticated) {
+      // Save the text so we can replay after login
+      const pendingText = text
+      setCaptureText('')
+      requireAuth(async () => {
+        // After successful auth, auto-capture the queued thought
+        const detectedType = detectContentType(pendingText)
+        const memoryType = mapToMemoryType(detectedType)
+
+        setParticles(generateParticles(14))
+        setTimeout(() => setParticles([]), 1200)
+        setCaptureFeedback({ category: detectedType })
+        if (feedbackTimer.current) clearTimeout(feedbackTimer.current)
+        feedbackTimer.current = setTimeout(() => setCaptureFeedback(null), 2500)
+        setIsJustSaved(true)
+        if (justSavedTimer.current) clearTimeout(justSavedTimer.current)
+        justSavedTimer.current = setTimeout(() => setIsJustSaved(false), 600)
+
+        setIsSaving(true)
+        try {
+          const savedMemory = await saveMemory({
+            type: memoryType,
+            title: pendingText.split('\n')[0].slice(0, 80) || 'Quick Note',
+            content: pendingText,
+            sourceUrl: detectedType === 'link' ? pendingText.trim() : null,
+          })
+          if (savedMemory) {
+            setLastSavedId(savedMemory.id)
+            setTimeout(() => setLastSavedId(null), 1500)
+          }
+        } catch {
+          // silent
+        } finally {
+          setIsSaving(false)
+        }
+      })
+      return
+    }
+
     const detectedType = detectContentType(text)
     const memoryType = mapToMemoryType(detectedType)
 
@@ -251,26 +293,19 @@ export function Dashboard() {
         content: text,
         sourceUrl: detectedType === 'link' ? text.trim() : null,
       })
-      await fetchMemories()
+      // NOTE: No fetchMemories() needed — saveMemory already does optimistic addMemory()
+      // The store's addMemory() instantly updates the list.
 
       if (savedMemory) {
         setLastSavedId(savedMemory.id)
         setTimeout(() => setLastSavedId(null), 1500)
-      }
-
-      if (savedMemory) {
-        fetch('/api/generate-embedding', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ memoryId: savedMemory.id, content: savedMemory.content }),
-        }).catch(() => {})
       }
     } catch {
       // silent
     } finally {
       setIsSaving(false)
     }
-  }, [captureText, isSaving, saveMemory, fetchMemories, memories.length, FREE_MEMORY_LIMIT])
+  }, [captureText, isSaving, saveMemory, memories.length, FREE_MEMORY_LIMIT, isAuthenticated, requireAuth])
 
   const handleCaptureKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {

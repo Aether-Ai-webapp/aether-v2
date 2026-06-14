@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { GoogleGenerativeAI } from '@google/generative-ai'
 
-// ─── Shared prompt (used by BOTH AIs) ────────────────────────────────
-const TAGGING_PROMPT = `Analyze this user's thought. Return a JSON object with ONE field: 'tags'. 'tags' must be an array of 3-5 relevant, lowercase tags (e.g., ['work', 'idea', 'personal', 'study', 'link', 'project', 'learning']). Return ONLY the raw JSON, no markdown formatting, no extra text.`
+// ─── Shared prompt (used by ALL AIs) ────────────────────────────────
+const TAGGING_PROMPT = `Analyze this user's thought. Return a JSON object with TWO fields:
+1. 'tags': an array of 3-5 relevant, lowercase tags (e.g., ['work', 'idea', 'personal', 'study', 'link', 'project', 'learning'])
+2. 'category': a single category name that best describes this content (e.g., 'Finance', 'Tech', 'Personal', 'Work', 'Learning', 'Travel', 'Health', 'Design', 'Ideas', 'Recipes')
+
+Return ONLY the raw JSON, no markdown formatting, no extra text.`
 
 // ─── Clean JSON helper ───────────────────────────────────────────────
-// LLMs sometimes wrap responses in ```json ... ``` blocks
 const cleanJsonString = (str: string): string => {
   return str
     .replace(/```json/g, '')
@@ -13,37 +15,63 @@ const cleanJsonString = (str: string): string => {
     .trim()
 }
 
-// ─── Parse tags from LLM response ────────────────────────────────────
-function parseTagsFromResponse(rawText: string): string[] {
+// ─── Parse tags and category from LLM response ──────────────────────
+function parseTagResponse(rawText: string): { tags: string[]; category: string } {
   const cleaned = cleanJsonString(rawText)
 
-  let parsed: { tags: string[] }
+  let parsed: { tags: string[]; category: string }
   try {
     parsed = JSON.parse(cleaned)
   } catch {
-    // Try to extract JSON object from the response
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
     if (jsonMatch) {
       try {
         parsed = JSON.parse(jsonMatch[0])
       } catch {
-        return []
+        return { tags: [], category: '' }
       }
     } else {
-      return []
+      return { tags: [], category: '' }
     }
   }
 
-  if (!Array.isArray(parsed.tags)) return []
+  const tags = Array.isArray(parsed.tags)
+    ? parsed.tags
+        .filter((t: unknown) => typeof t === 'string')
+        .map((t: string) => t.toLowerCase().trim())
+        .filter(Boolean)
+        .slice(0, 5)
+    : []
 
-  return parsed.tags
-    .filter((t: unknown) => typeof t === 'string')
-    .map((t: string) => t.toLowerCase().trim())
-    .filter(Boolean)
-    .slice(0, 5)
+  const category = typeof parsed.category === 'string' && parsed.category.trim()
+    ? parsed.category.trim()
+    : ''
+
+  return { tags, category }
 }
 
-// ─── Attempt 1: Groq (fast & cheap) via REST API ─────────────────────
+// ─── Attempt 1: z-ai-web-dev-sdk (fast, always available) ───────────
+async function tryZAI(content: string): Promise<string | null> {
+  try {
+    const ZAI = (await import('z-ai-web-dev-sdk')).default
+    const zai = await ZAI.create()
+
+    const completion = await zai.chat.completions.create({
+      messages: [
+        { role: 'assistant', content: TAGGING_PROMPT },
+        { role: 'user', content: `User's thought:\n${content.slice(0, 1000)}` },
+      ],
+      thinking: { type: 'disabled' },
+    })
+
+    return completion.choices?.[0]?.message?.content || null
+  } catch (err) {
+    console.warn('z-ai tagging failed:', err instanceof Error ? err.message : 'Unknown')
+    return null
+  }
+}
+
+// ─── Attempt 2: Groq (fast & cheap) ──────────────────────────────────
 async function tryGroq(content: string): Promise<string | null> {
   const groqKey = process.env.NEXT_PUBLIC_GROQ_API_KEY
   if (!groqKey || groqKey === 'placeholder_groq_key') return null
@@ -63,7 +91,7 @@ async function tryGroq(content: string): Promise<string | null> {
         },
       ],
       temperature: 0.2,
-      max_tokens: 100,
+      max_tokens: 150,
     }),
   })
 
@@ -76,11 +104,12 @@ async function tryGroq(content: string): Promise<string | null> {
   return text || null
 }
 
-// ─── Attempt 2: Gemini (failover) ────────────────────────────────────
+// ─── Attempt 3: Gemini (failover) ────────────────────────────────────
 async function tryGemini(content: string): Promise<string | null> {
   const geminiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY
   if (!geminiKey) return null
 
+  const { GoogleGenerativeAI } = await import('@google/generative-ai')
   const genAI = new GoogleGenerativeAI(geminiKey)
   const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
 
@@ -91,59 +120,72 @@ async function tryGemini(content: string): Promise<string | null> {
         parts: [{ text: `${TAGGING_PROMPT}\n\nUser's thought:\n${content.slice(0, 1000)}` }],
       },
     ],
-    generationConfig: { temperature: 0.2, maxOutputTokens: 100 },
+    generationConfig: { temperature: 0.2, maxOutputTokens: 150 },
   })
 
   return result.response.text() || null
 }
 
 // ─── POST /api/auto-tag ──────────────────────────────────────────────
-// Dual-AI auto-tagging: Groq primary → Gemini failover
+// Multi-AI auto-tagging: z-ai → Groq → Gemini
 export async function POST(req: NextRequest) {
   try {
     const { content } = await req.json()
 
     if (!content?.trim()) {
-      return NextResponse.json({ tags: [] }, { status: 400 })
+      return NextResponse.json({ tags: [], category: '' }, { status: 400 })
     }
 
-    // Race the entire dual-AI flow with a 15s timeout
-    const tags = await Promise.race([
+    // Race the entire multi-AI flow with a 15s timeout
+    const result = await Promise.race([
       getTagsWithFailover(content),
-      new Promise<string[]>((resolve) => setTimeout(() => resolve([]), 15000)),
+      new Promise<{ tags: string[]; category: string }>((resolve) =>
+        setTimeout(() => resolve({ tags: [], category: '' }), 15000)
+      ),
     ])
 
-    return NextResponse.json({ tags })
+    return NextResponse.json(result)
   } catch (error) {
     console.error('Auto-tag error:', error instanceof Error ? error.message : 'Unknown error')
-    return NextResponse.json({ tags: [] })
+    return NextResponse.json({ tags: [], category: '' })
   }
 }
 
-// ─── Failover logic: Groq → Gemini ───────────────────────────────────
-async function getTagsWithFailover(content: string): Promise<string[]> {
-  // Attempt 1: Groq (fast & cheap)
+// ─── Failover logic: z-ai → Groq → Gemini ───────────────────────────
+async function getTagsWithFailover(content: string): Promise<{ tags: string[]; category: string }> {
+  // Attempt 1: z-ai-web-dev-sdk (always available, fast)
+  try {
+    const zaiResponse = await tryZAI(content)
+    if (zaiResponse) {
+      const result = parseTagResponse(zaiResponse)
+      if (result.tags.length > 0) return result
+    }
+  } catch (error) {
+    console.error('z-ai failed, falling back to Groq', error instanceof Error ? error.message : 'Unknown error')
+  }
+
+  // Attempt 2: Groq (fast & cheap)
   try {
     const groqResponse = await tryGroq(content)
     if (groqResponse) {
-      const tags = parseTagsFromResponse(groqResponse)
-      if (tags.length > 0) return tags
+      const result = parseTagResponse(groqResponse)
+      if (result.tags.length > 0) return result
     }
   } catch (error) {
     console.error('Groq failed, falling back to Gemini', error instanceof Error ? error.message : 'Unknown error')
   }
 
-  // Attempt 2: Gemini (failover)
+  // Attempt 3: Gemini (failover)
   try {
     const geminiResponse = await tryGemini(content)
     if (geminiResponse) {
-      const tags = parseTagsFromResponse(geminiResponse)
-      if (tags.length > 0) return tags
+      const result = parseTagResponse(geminiResponse)
+      if (result.tags.length > 0) return result
     }
   } catch (error) {
     console.error('Gemini failed too', error instanceof Error ? error.message : 'Unknown error')
   }
 
-  // Both AIs failed — return empty (keyword tags from the store still apply)
-  return []
+  // All AIs failed — return empty (keyword tags from the store still apply)
+  return { tags: [], category: '' }
 }

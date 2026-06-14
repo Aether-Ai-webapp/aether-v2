@@ -138,12 +138,7 @@ export function AddMemorySheet({ open, onOpenChange }: AddMemorySheetProps) {
         })
         if (result) {
           toast.success('Memory saved!')
-          // Generate embedding in background (fire-and-forget)
-          fetch('/api/generate-embedding', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ memoryId: result.id, content: result.content }),
-          }).catch(() => { /* silent — non-blocking */ })
+          // Note: saveMemory already handles background AI tagging, summary, link reading, and embedding
         }
       })
       handleClose()
@@ -162,12 +157,7 @@ export function AddMemorySheet({ open, onOpenChange }: AddMemorySheetProps) {
       if (result) {
         handleClose()
         toast.success('Memory saved!')
-        // Generate embedding in background (fire-and-forget)
-        fetch('/api/generate-embedding', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ memoryId: result.id, content: result.content }),
-        }).catch(() => { /* silent — non-blocking */ })
+        // Note: saveMemory already handles background AI tagging, summary, link reading, and embedding
       } else {
         toast.error('Failed to save memory')
       }

@@ -452,6 +452,8 @@ export const useAetherStore = create<AetherState>((set, get) => ({
   fetchMemories: async () => {
     set({ isLoading: true })
     const state = get()
+
+    // ── Authenticated + Supabase ready: fetch from Supabase directly ──
     if (state.isAuthenticated && state.supabaseReady) {
       try {
         const supabase = await getSupabaseBrowser()
@@ -469,12 +471,13 @@ export const useAetherStore = create<AetherState>((set, get) => ({
         const memories = (data as SupabaseMemoryRow[]).map(mapSupabaseMemory)
         set({ memories, isLoading: false })
         return
-      } catch {
-        // Fall through to Prisma API
+      } catch (supabaseErr) {
+        console.warn('Supabase fetch failed, falling back to API:', supabaseErr instanceof Error ? supabaseErr.message : 'Unknown')
+        // Fall through to API
       }
     }
 
-    // Fallback: fetch from Prisma API
+    // ── Fallback: fetch from API (works for both auth and non-auth) ──
     try {
       const res = await fetch('/api/memories')
       if (res.ok) {
@@ -483,7 +486,7 @@ export const useAetherStore = create<AetherState>((set, get) => ({
         return
       }
     } catch (e) {
-      console.error('Failed to fetch memories:', e)
+      console.error('Failed to fetch memories via API:', e)
     }
     set({ isLoading: false })
   },
@@ -564,7 +567,7 @@ export const useAetherStore = create<AetherState>((set, get) => ({
 
       if (!res.ok) return
 
-      const { tags: aiTags } = await res.json()
+      const { tags: aiTags, category } = await res.json()
       if (!aiTags || !aiTags.length) return
 
       const state = get()
@@ -598,6 +601,109 @@ export const useAetherStore = create<AetherState>((set, get) => ({
 
       // Update the local state so tags appear immediately
       get().updateMemory(memoryId, { tags: aiTags })
+
+      // ── AUTO-COLLECTION: Create collection from AI category if it doesn't exist ──
+      if (category?.trim()) {
+        const normalizedCategory = category.trim()
+        const existingCollection = state.collections.find(
+          (c) => c.name.toLowerCase() === normalizedCategory.toLowerCase()
+        )
+
+        if (!existingCollection) {
+          // Create the collection dynamically
+          const newCollection = await get().saveCollection({
+            name: normalizedCategory,
+            color: '#6D597A',
+            icon: '📁',
+          })
+
+          if (newCollection) {
+            // Link the memory to the new collection
+            if (state.isAuthenticated && state.supabaseReady) {
+              try {
+                const supabase = await getSupabaseBrowser()
+                const { data: { session } } = await supabase.auth.getSession()
+                if (session) {
+                  await supabase.from('memory_collections').insert({
+                    memory_id: memoryId,
+                    collection_id: newCollection.id,
+                  })
+                }
+              } catch {
+                // Silently fail
+              }
+            } else {
+              try {
+                await fetch(`/api/memories/${memoryId}`, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ collectionIds: [newCollection.id] }),
+                })
+              } catch {
+                // Silently fail
+              }
+            }
+
+            // Update local memory with the new collection
+            const currentMemory = get().memories.find((m) => m.id === memoryId)
+            if (currentMemory) {
+              get().updateMemory(memoryId, {
+                collections: [...currentMemory.collections, {
+                  id: newCollection.id,
+                  name: newCollection.name,
+                  color: newCollection.color,
+                  icon: newCollection.icon,
+                }],
+              })
+            }
+          }
+        } else {
+          // Collection already exists — link the memory to it
+          const alreadyLinked = state.memories
+            .find((m) => m.id === memoryId)
+            ?.collections.some((c) => c.id === existingCollection.id)
+
+          if (!alreadyLinked) {
+            if (state.isAuthenticated && state.supabaseReady) {
+              try {
+                const supabase = await getSupabaseBrowser()
+                const { data: { session } } = await supabase.auth.getSession()
+                if (session) {
+                  await supabase.from('memory_collections').insert({
+                    memory_id: memoryId,
+                    collection_id: existingCollection.id,
+                  })
+                }
+              } catch {
+                // Silently fail
+              }
+            } else {
+              try {
+                await fetch(`/api/memories/${memoryId}`, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ collectionIds: [existingCollection.id] }),
+                })
+              } catch {
+                // Silently fail
+              }
+            }
+
+            // Update local memory with the collection
+            const currentMemory = get().memories.find((m) => m.id === memoryId)
+            if (currentMemory) {
+              get().updateMemory(memoryId, {
+                collections: [...currentMemory.collections, {
+                  id: existingCollection.id,
+                  name: existingCollection.name,
+                  color: existingCollection.color,
+                  icon: existingCollection.icon,
+                }],
+              })
+            }
+          }
+        }
+      }
     } catch {
       // Non-blocking: never fail the save flow
     }
