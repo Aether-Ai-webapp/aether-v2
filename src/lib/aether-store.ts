@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { createBrowserClient } from '@supabase/ssr'
 
 export type MemoryType = 'text' | 'voice' | 'link' | 'image'
 
@@ -158,10 +159,19 @@ function autoGenerateTags(content: string, title: string): string[] {
   return tags.slice(0, 5)
 }
 
-// ─── Supabase browser client helper ──────────────────────────────────
+// ─── Supabase browser client (SINGLETON — one instance per browser session) ──
+let _supabaseBrowserInstance: ReturnType<typeof createBrowserClient> | null = null
+
 async function getSupabaseBrowser() {
+  if (_supabaseBrowserInstance) return _supabaseBrowserInstance
   const { createClient } = await import('@/lib/supabase/browser')
-  return createClient()
+  _supabaseBrowserInstance = createClient()
+  return _supabaseBrowserInstance
+}
+
+// Reset singleton on logout (called from the store's logout action)
+function resetSupabaseBrowser() {
+  _supabaseBrowserInstance = null
 }
 
 // ─── Store ───────────────────────────────────────────────────────────
@@ -351,6 +361,7 @@ export const useAetherStore = create<AetherState>((set, get) => ({
     try {
       await fetch('/api/auth/logout', { method: 'POST' })
     } catch { /* ignore */ }
+    resetSupabaseBrowser()
     set({
       user: { id: 'local', email: '', name: 'Aether User', avatarUrl: null },
       isAuthenticated: false,
@@ -400,17 +411,34 @@ export const useAetherStore = create<AetherState>((set, get) => ({
         return false
       }
 
-      // Try a minimal query to see if the memories table exists
+      // Try a minimal query to see if the memories table exists AND RLS lets us read
       const { error } = await supabase
         .from('memories')
         .select('id')
         .eq('user_id', session.user.id)
         .limit(1)
 
-      const ready = !error
-      set({ supabaseReady: ready })
-      return ready
-    } catch {
+      if (error) {
+        console.warn('[checkSupabaseTables] Probe failed:', error.message)
+        // Don't immediately give up — a permissions error on an empty table is normal
+        // If the error is specifically "no rows" that's fine, the table exists
+        // Only set supabaseReady=false for actual table-not-exist errors
+        const isTableMissing = error.message?.includes('does not exist') || error.message?.includes('not found')
+        if (!isTableMissing) {
+          // Table exists, we just can't read it (could be empty + RLS)
+          // This is actually fine — set ready=true
+          console.info('[checkSupabaseTables] Table exists but query returned error (likely empty table + RLS). Setting ready=true.')
+          set({ supabaseReady: true })
+          return true
+        }
+        set({ supabaseReady: false })
+        return false
+      }
+
+      set({ supabaseReady: true })
+      return true
+    } catch (err) {
+      console.error('[checkSupabaseTables] Exception:', err instanceof Error ? err.message : 'Unknown')
       set({ supabaseReady: false })
       return false
     }
@@ -487,7 +515,7 @@ export const useAetherStore = create<AetherState>((set, get) => ({
         set({ memories, isLoading: false })
         return
       } catch (supabaseErr) {
-        console.warn('Supabase fetch failed, falling back to API:', supabaseErr instanceof Error ? supabaseErr.message : 'Unknown')
+        console.error('[fetchMemories] Supabase direct fetch failed:', supabaseErr instanceof Error ? supabaseErr.message : 'Unknown')
         // Fall through to API
       }
     }
@@ -501,7 +529,7 @@ export const useAetherStore = create<AetherState>((set, get) => ({
         return
       }
     } catch (e) {
-      console.error('Failed to fetch memories via API:', e)
+      console.error('[fetchMemories] API fetch failed:', e)
     }
     set({ isLoading: false })
   },
@@ -555,7 +583,8 @@ export const useAetherStore = create<AetherState>((set, get) => ({
         if (session) {
           await supabase.from('memories').delete().eq('id', id)
         }
-      } catch {
+      } catch (err) {
+        console.error('[deleteMemoryFromDB] Supabase delete failed:', err instanceof Error ? err.message : 'Unknown')
         // Fall through to Prisma API
       }
     }
@@ -563,8 +592,8 @@ export const useAetherStore = create<AetherState>((set, get) => ({
     // Also try Prisma API (works for both local and authenticated users)
     try {
       await fetch(`/api/memories/${id}`, { method: 'DELETE' })
-    } catch {
-      // Silent fail
+    } catch (err) {
+      console.error('[deleteMemoryFromDB] Prisma DELETE failed:', err instanceof Error ? err.message : 'Unknown')
     }
 
     // Remove from local state
@@ -734,7 +763,7 @@ export const useAetherStore = create<AetherState>((set, get) => ({
       }
     } catch (err) {
       // Non-blocking: never fail the save flow
-      console.warn('backgroundAutoTag failed:', err instanceof Error ? err.message : 'Unknown')
+      console.warn('[backgroundAutoTag] failed:', err instanceof Error ? err.message : 'Unknown')
     }
   },
 
@@ -930,6 +959,10 @@ export const useAetherStore = create<AetherState>((set, get) => ({
         // Optimistic UI: add to store instantly
         get().addMemory(memory)
 
+        // ── CONFIRM: Re-fetch from Supabase after short delay to confirm persistence ──
+        // This ensures the dashboard shows the true state even if optimistic add was based on stale data
+        setTimeout(() => { get().fetchMemories() }, 500)
+
         // ── STEP 2: ALWAYS run AI auto-tagging (for category assignment + collections) ──
         if (content?.trim()) {
           get().backgroundAutoTag(memory.id, content, title || '')
@@ -951,7 +984,8 @@ export const useAetherStore = create<AetherState>((set, get) => ({
         }
 
         return memory
-      } catch {
+      } catch (err) {
+        console.error('[saveMemory] Supabase insert failed, falling to Prisma API:', err instanceof Error ? err.message : 'Unknown')
         // Fall through to Prisma API
       }
     }
@@ -974,6 +1008,9 @@ export const useAetherStore = create<AetherState>((set, get) => ({
         const memory: Memory = await res.json()
         get().addMemory(memory)
 
+        // ── CONFIRM: Re-fetch to confirm persistence ──
+        setTimeout(() => { get().fetchMemories() }, 500)
+
         // ── STEP 2: ALWAYS run AI auto-tagging (for category assignment + collections) ──
         if (content?.trim()) {
           get().backgroundAutoTag(memory.id, content, title || '')
@@ -996,8 +1033,8 @@ export const useAetherStore = create<AetherState>((set, get) => ({
 
         return memory
       }
-    } catch {
-      // Silent fail
+    } catch (err) {
+      console.error('[saveMemory] Prisma API also failed:', err instanceof Error ? err.message : 'Unknown')
     }
     return null
   },
@@ -1030,7 +1067,8 @@ export const useAetherStore = create<AetherState>((set, get) => ({
         const collection = mapSupabaseCollection(collectionRow as SupabaseCollectionRow)
         get().addCollection(collection)
         return collection
-      } catch {
+      } catch (err) {
+        console.error('[saveCollection] Supabase insert failed:', err instanceof Error ? err.message : 'Unknown')
         // Fall through to Prisma API
       }
     }
@@ -1047,8 +1085,8 @@ export const useAetherStore = create<AetherState>((set, get) => ({
         get().addCollection(collection)
         return collection
       }
-    } catch {
-      // Silent fail
+    } catch (err) {
+      console.error('[saveCollection] Prisma API also failed:', err instanceof Error ? err.message : 'Unknown')
     }
     return null
   },

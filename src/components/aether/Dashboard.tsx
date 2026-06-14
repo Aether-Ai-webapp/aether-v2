@@ -255,9 +255,13 @@ export function Dashboard() {
           if (savedMemory) {
             setLastSavedId(savedMemory.id)
             setTimeout(() => setLastSavedId(null), 1500)
+            // GUARANTEED HYDRATION after auth-gate replay
+            fetchMemories()
+          } else {
+            toast.error('Failed to save. Please try again.')
           }
         } catch {
-          // silent
+          toast.error('Something went wrong while saving.')
         } finally {
           setIsSaving(false)
         }
@@ -293,19 +297,24 @@ export function Dashboard() {
         content: text,
         sourceUrl: detectedType === 'link' ? text.trim() : null,
       })
-      // NOTE: No fetchMemories() needed — saveMemory already does optimistic addMemory()
-      // The store's addMemory() instantly updates the list.
 
       if (savedMemory) {
         setLastSavedId(savedMemory.id)
         setTimeout(() => setLastSavedId(null), 1500)
+        // GUARANTEED HYDRATION: Re-fetch from backend to confirm persistence
+        // The store's saveMemory() does optimistic addMemory(), but this
+        // confirms the data actually made it to Supabase/Prisma
+        fetchMemories()
+      } else {
+        // saveMemory returned null — both Supabase and Prisma failed
+        toast.error('Failed to save. Please try again.')
       }
     } catch {
-      // silent
+      toast.error('Something went wrong while saving.')
     } finally {
       setIsSaving(false)
     }
-  }, [captureText, isSaving, saveMemory, memories.length, FREE_MEMORY_LIMIT, isAuthenticated, requireAuth])
+  }, [captureText, isSaving, saveMemory, fetchMemories, memories.length, FREE_MEMORY_LIMIT, isAuthenticated, requireAuth])
 
   const handleCaptureKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {

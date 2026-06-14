@@ -1,0 +1,1056 @@
+     1→     1→import { create } from 'zustand'
+     2→     2→
+     3→     3→export type MemoryType = 'text' | 'voice' | 'link' | 'image'
+     4→     4→
+     5→     5→export interface Memory {
+     6→     6→  id: string
+     7→     7→  type: MemoryType
+     8→     8→  title: string
+     9→     9→  content: string
+    10→    10→  summary: string | null
+    11→    11→  tags: string[]
+    12→    12→  sourceUrl: string | null
+    13→    13→  fileUrl: string | null
+    14→    14→  imagePreview: string | null
+    15→    15→  isFavorite: boolean
+    16→    16→  createdAt: string
+    17→    17→  updatedAt: string
+    18→    18→  collections: { id: string; name: string; color: string; icon?: string }[]
+    19→    19→}
+    20→    20→
+    21→    21→export interface Collection {
+    22→    22→  id: string
+    23→    23→  name: string
+    24→    24→  icon: string
+    25→    25→  color: string
+    26→    26→  createdAt: string
+    27→    27→  memoryCount: number
+    28→    28→}
+    29→    29→
+    30→    30→export type AppView = 'dashboard' | 'ask' | 'collections' | 'memories' | 'settings'
+    31→    31→
+    32→    32→export interface ChatMessage {
+    33→    33→  id: string
+    34→    34→  role: 'user' | 'assistant'
+    35→    35→  content: string
+    36→    36→  timestamp: Date
+    37→    37→}
+    38→    38→
+    39→    39→export interface AuthUser {
+    40→    40→  id: string
+    41→    41→  email: string
+    42→    42→  name: string
+    43→    43→  avatarUrl: string | null
+    44→    44→}
+    45→    45→
+    46→    46→// ─── Supabase row mappers ────────────────────────────────────────────
+    47→    47→interface SupabaseMemoryRow {
+    48→    48→  id: string
+    49→    49→  user_id: string
+    50→    50→  type: string
+    51→    51→  title: string
+    52→    52→  content: string
+    53→    53→  summary: string | null
+    54→    54→  tags: string
+    55→    55→  source_url: string | null
+    56→    56→  file_url: string | null
+    57→    57→  image_preview: string | null
+    58→    58→  is_favorite: boolean
+    59→    59→  created_at: string
+    60→    60→  updated_at: string
+    61→    61→  memory_collections?: { collection_id: string; collections: { id: string; name: string; color: string; icon: string } }[]
+    62→    62→}
+    63→    63→
+    64→    64→interface SupabaseCollectionRow {
+    65→    65→  id: string
+    66→    66→  user_id: string
+    67→    67→  name: string
+    68→    68→  icon: string
+    69→    69→  color: string
+    70→    70→  created_at: string
+    71→    71→  memory_collections?: { id: string }[]
+    72→    72→}
+    73→    73→
+    74→    74→function mapSupabaseMemory(row: SupabaseMemoryRow): Memory {
+    75→    75→  return {
+    76→    76→    id: row.id,
+    77→    77→    type: (row.type as MemoryType) || 'text',
+    78→    78→    title: row.title || '',
+    79→    79→    content: row.content || '',
+    80→    80→    summary: row.summary,
+    81→    81→    tags: row.tags ? row.tags.split(',').filter(Boolean) : [],
+    82→    82→    sourceUrl: row.source_url,
+    83→    83→    fileUrl: row.file_url,
+    84→    84→    imagePreview: row.image_preview,
+    85→    85→    isFavorite: row.is_favorite || false,
+    86→    86→    createdAt: row.created_at,
+    87→    87→    updatedAt: row.updated_at,
+    88→    88→    collections: row.memory_collections?.map((mc) => ({
+    89→    89→      id: mc.collections.id,
+    90→    90→      name: mc.collections.name,
+    91→    91→      color: mc.collections.color,
+    92→    92→      icon: mc.collections.icon,
+    93→    93→    })) || [],
+    94→    94→  }
+    95→    95→}
+    96→    96→
+    97→    97→function mapSupabaseCollection(row: SupabaseCollectionRow): Collection {
+    98→    98→  return {
+    99→    99→    id: row.id,
+   100→   100→    name: row.name,
+   101→   101→    icon: row.icon || '📁',
+   102→   102→    color: row.color || '#6D597A',
+   103→   103→    createdAt: row.created_at,
+   104→   104→    memoryCount: row.memory_collections?.length || 0,
+   105→   105→  }
+   106→   106→}
+   107→   107→
+   108→   108→// ─── Smart Token Saver: Local, free, instant tagging ──────────────────
+   109→   109→function getLocalTags(text: string): string[] {
+   110→   110→  const lower = text.toLowerCase()
+   111→   111→  const tags: string[] = []
+   112→   112→
+   113→   113→  // URL detection → 'link'
+   114→   114→  if (/https?:\/\//.test(lower)) {
+   115→   115→    tags.push('link')
+   116→   116→  }
+   117→   117→
+   118→   118→  // Task words → 'task'
+   119→   119→  if (/\b(todo|remind|need to|must|buy)\b/.test(lower)) {
+   120→   120→    tags.push('task')
+   121→   121→  }
+   122→   122→
+   123→   123→  // Person/personal words → 'personal'
+   124→   124→  if (/\b(i |me |with |call|email)\b/.test(lower)) {
+   125→   125→    tags.push('personal')
+   126→   126→  }
+   127→   127→
+   128→   128→  // Question/idea words → 'idea'
+   129→   129→  if (/\b(what|how|why|who)\b/.test(lower)) {
+   130→   130→    tags.push('idea')
+   131→   131→  }
+   132→   132→
+   133→   133→  return tags.slice(0, 5)
+   134→   134→}
+   135→   135→
+   136→   136→// ─── Extended keyword-based auto-tagging (richer, for AI fallback) ───
+   137→   137→function autoGenerateTags(content: string, title: string): string[] {
+   138→   138→  const text = `${title} ${content}`.toLowerCase()
+   139→   139→  const tagMap: Record<string, string[]> = {
+   140→   140→    'work': ['meeting', 'project', 'deadline', 'client', 'office', 'team', 'q1', 'q2', 'q3', 'q4', 'quarterly', 'strategy'],
+   141→   141→    'personal': ['routine', 'morning', 'exercise', 'meditation', 'journal', 'habit'],
+   142→   142→    'travel': ['trip', 'itinerary', 'flight', 'hotel', 'visit', 'tokyo', 'paris', 'destination'],
+   143→   143→    'learning': ['learn', 'study', 'course', 'tutorial', 'book', 'read', 'article'],
+   144→   144→    'code': ['code', 'programming', 'react', 'javascript', 'typescript', 'api', 'bug', 'feature', 'css', 'html', 'framework'],
+   145→   145→    'design': ['design', 'ui', 'ux', 'layout', 'color', 'font', 'figma', 'wireframe'],
+   146→   146→    'ai': ['ai', 'machine learning', 'neural', 'model', 'gpt', 'gemini', 'llm', 'chatbot'],
+   147→   147→    'recipe': ['recipe', 'cook', 'bake', 'ingredient', 'food', 'meal', 'breakfast', 'dinner'],
+   148→   148→    'idea': ['idea', 'concept', 'brainstorm', 'innovative', 'startup', 'prototype'],
+   149→   149→    'finance': ['budget', 'expense', 'invest', 'savings', 'money', 'cost'],
+   150→   150→  }
+   151→   151→
+   152→   152→  const tags: string[] = []
+   153→   153→  for (const [tag, keywords] of Object.entries(tagMap)) {
+   154→   154→    if (keywords.some(kw => text.includes(kw))) {
+   155→   155→      tags.push(tag)
+   156→   156→    }
+   157→   157→  }
+   158→   158→  return tags.slice(0, 5)
+   159→   159→}
+   160→   160→
+   161→   161→// ─── Supabase browser client helper ──────────────────────────────────
+   162→   162→async function getSupabaseBrowser() {
+   163→   163→  const { createClient } = await import('@/lib/supabase/browser')
+   164→   164→  return createClient()
+   165→   165→}
+   166→   166→
+   167→   167→// ─── Store ───────────────────────────────────────────────────────────
+   168→   168→interface AetherState {
+   169→   169→  // Navigation
+   170→   170→  currentView: AppView
+   171→   171→  setCurrentView: (view: AppView) => void
+   172→   172→
+   173→   173→  // Auth
+   174→   174→  user: AuthUser | null
+   175→   175→  isAuthenticated: boolean
+   176→   176→  showAuthModal: boolean
+   177→   177→  pendingAction: (() => void) | null
+   178→   178→  supabaseReady: boolean // true when Supabase tables exist for this user
+   179→   179→  setUser: (user: AuthUser | null) => void
+   180→   180→  setShowAuthModal: (show: boolean) => void
+   181→   181→  requireAuth: (action: () => void) => void
+   182→   182→  login: (email: string, password: string) => Promise<boolean>
+   183→   183→  signup: (email: string, password: string, name: string) => Promise<boolean>
+   184→   184→  logout: () => Promise<void>
+   185→   185→  checkSession: () => Promise<void>
+   186→   186→  checkSupabaseTables: () => Promise<boolean>
+   187→   187→
+   188→   188→  // Data
+   189→   189→  memories: Memory[]
+   190→   190→  collections: Collection[]
+   191→   191→  isLoading: boolean
+   192→   192→
+   193→   193→  // Selected
+   194→   194→  selectedMemoryId: string | null
+   195→   195→  selectedCollectionId: string | null
+   196→   196→
+   197→   197→  // Search
+   198→   198→  searchQuery: string
+   199→   199→  setSearchQuery: (q: string) => void
+   200→   200→  filterType: MemoryType | 'all'
+   201→   201→  setFilterType: (t: MemoryType | 'all') => void
+   202→   202→
+   203→   203→  // Chat
+   204→   204→  chatMessages: ChatMessage[]
+   205→   205→  addChatMessage: (msg: ChatMessage) => void
+   206→   206→  clearChat: () => void
+   207→   207→
+   208→   208→  // Theme
+   209→   209→  darkMode: boolean
+   210→   210→  toggleDarkMode: () => void
+   211→   211→
+   212→   212→  // Data actions
+   213→   213→  setMemories: (memories: Memory[]) => void
+   214→   214→  setCollections: (collections: Collection[]) => void
+   215→   215→  setLoading: (loading: boolean) => void
+   216→   216→  setSelectedMemoryId: (id: string | null) => void
+   217→   217→  setSelectedCollectionId: (id: string | null) => void
+   218→   218→  addMemory: (memory: Memory) => void
+   219→   219→  updateMemory: (id: string, updates: Partial<Memory>) => void
+   220→   220→  deleteMemory: (id: string) => void
+   221→   221→  addCollection: (collection: Collection) => void
+   222→   222→  updateCollection: (id: string, updates: Partial<Collection>) => void
+   223→   223→  deleteCollection: (id: string) => void
+   224→   224→  fetchMemories: () => Promise<void>
+   225→   225→  fetchCollections: () => Promise<void>
+   226→   226→
+   227→   227→  // Supabase-aware save
+   228→   228→  saveMemory: (data: { type: MemoryType; title: string; content: string; sourceUrl?: string | null; tags?: string[]; collectionIds?: string[] }) => Promise<Memory | null>
+   229→   229→  saveCollection: (data: { name: string; color?: string; icon?: string }) => Promise<Collection | null>
+   230→   230→
+   231→   231→  // Delete memory from DB
+   232→   232→  deleteMemoryFromDB: (id: string) => Promise<void>
+   233→   233→
+   234→   234→  // Background AI auto-tagging (non-blocking)
+   235→   235→  backgroundAutoTag: (memoryId: string, content: string, title: string) => Promise<void>
+   236→   236→
+   237→   237→  // Background AI summary generation (non-blocking)
+   238→   238→  backgroundAutoSummary: (memoryId: string, content: string) => Promise<void>
+   239→   239→
+   240→   240→  // Background link content reading (non-blocking)
+   241→   241→  backgroundReadLink: (memoryId: string, url: string) => Promise<void>
+   242→   242→
+   243→   243→  // Background embedding generation for semantic search (non-blocking)
+   244→   244→  backgroundGenerateEmbedding: (memoryId: string, content: string) => Promise<void>
+   245→   245→}
+   246→   246→
+   247→   247→export const useAetherStore = create<AetherState>((set, get) => ({
+   248→   248→  // Navigation
+   249→   249→  currentView: 'dashboard',
+   250→   250→  setCurrentView: (view) => set({ currentView: view, selectedMemoryId: null, selectedCollectionId: null }),
+   251→   251→
+   252→   252→  // Auth — start as "local" user, no auth gate
+   253→   253→  user: { id: 'local', email: '', name: 'Aether User', avatarUrl: null },
+   254→   254→  isAuthenticated: false,
+   255→   255→  showAuthModal: false,
+   256→   256→  pendingAction: null,
+   257→   257→  supabaseReady: false,
+   258→   258→  setUser: (user) => set({ user, isAuthenticated: !!user && user.id !== 'local' }),
+   259→   259→  setShowAuthModal: (showAuthModal) => set({ showAuthModal }),
+   260→   260→
+   261→   261→  // The gate: if user is signed in, run action immediately. Otherwise, queue it and show modal.
+   262→   262→  requireAuth: (action) => {
+   263→   263→    const state = get()
+   264→   264→    if (state.isAuthenticated && state.user && state.user.id !== 'local') {
+   265→   265→      action()
+   266→   266→    } else {
+   267→   267→      set({ showAuthModal: true, pendingAction: action })
+   268→   268→    }
+   269→   269→  },
+   270→   270→
+   271→   271→  login: async (email, password) => {
+   272→   272→    try {
+   273→   273→      const res = await fetch('/api/auth/login', {
+   274→   274→        method: 'POST',
+   275→   275→        headers: { 'Content-Type': 'application/json' },
+   276→   276→        body: JSON.stringify({ email, password }),
+   277→   277→      })
+   278→   278→      if (!res.ok) return false
+   279→   279→      const data = await res.json()
+   280→   280→      if (data.user) {
+   281→   281→        set({
+   282→   282→          user: {
+   283→   283→            id: data.user.id,
+   284→   284→            email: data.user.email || '',
+   285→   285→            name: data.user.user_metadata?.name || '',
+   286→   286→            avatarUrl: data.user.user_metadata?.avatar_url || null,
+   287→   287→          },
+   288→   288→          isAuthenticated: true,
+   289→   289→          showAuthModal: false,
+   290→   290→        })
+   291→   291→        // CRITICAL: Await Supabase tables check before running pending actions or fetching data
+   292→   292→        // Without this, supabaseReady is still false when saveMemory/fetchMemories run
+   293→   293→        await get().checkSupabaseTables()
+   294→   294→        // Execute any pending action that was queued (e.g., deferred capture)
+   295→   295→        const pending = get().pendingAction
+   296→   296→        if (pending) {
+   297→   297→          await pending()
+   298→   298→          set({ pendingAction: null })
+   299→   299→        }
+   300→   300→        // Re-fetch data from Supabase (now that supabaseReady is set)
+   301→   301→        await get().fetchMemories()
+   302→   302→        await get().fetchCollections()
+   303→   303→        return true
+   304→   304→      }
+   305→   305→      return false
+   306→   306→    } catch {
+   307→   307→      return false
+   308→   308→    }
+   309→   309→  },
+   310→   310→
+   311→   311→  signup: async (email, password, name) => {
+   312→   312→    try {
+   313→   313→      const res = await fetch('/api/auth/signup', {
+   314→   314→        method: 'POST',
+   315→   315→        headers: { 'Content-Type': 'application/json' },
+   316→   316→        body: JSON.stringify({ email, password, name }),
+   317→   317→      })
+   318→   318→      if (!res.ok) return false
+   319→   319→      const data = await res.json()
+   320→   320→      if (data.user) {
+   321→   321→        set({
+   322→   322→          user: {
+   323→   323→            id: data.user.id,
+   324→   324→            email: data.user.email || '',
+   325→   325→            name: name || '',
+   326→   326→            avatarUrl: null,
+   327→   327→          },
+   328→   328→          isAuthenticated: true,
+   329→   329→          showAuthModal: false,
+   330→   330→        })
+   331→   331→        // CRITICAL: Await Supabase tables check before running pending actions or fetching data
+   332→   332→        await get().checkSupabaseTables()
+   333→   333→        // Execute any pending action
+   334→   334→        const pending = get().pendingAction
+   335→   335→        if (pending) {
+   336→   336→          await pending()
+   337→   337→          set({ pendingAction: null })
+   338→   338→        }
+   339→   339→        // Re-fetch data from Supabase (now that supabaseReady is set)
+   340→   340→        await get().fetchMemories()
+   341→   341→        await get().fetchCollections()
+   342→   342→        return true
+   343→   343→      }
+   344→   344→      return false
+   345→   345→    } catch {
+   346→   346→      return false
+   347→   347→    }
+   348→   348→  },
+   349→   349→
+   350→   350→  logout: async () => {
+   351→   351→    try {
+   352→   352→      await fetch('/api/auth/logout', { method: 'POST' })
+   353→   353→    } catch { /* ignore */ }
+   354→   354→    set({
+   355→   355→      user: { id: 'local', email: '', name: 'Aether User', avatarUrl: null },
+   356→   356→      isAuthenticated: false,
+   357→   357→      supabaseReady: false,
+   358→   358→      chatMessages: [],
+   359→   359→    })
+   360→   360→    // Reload data as local user
+   361→   361→    get().fetchMemories()
+   362→   362→    get().fetchCollections()
+   363→   363→  },
+   364→   364→
+   365→   365→  checkSession: async () => {
+   366→   366→    try {
+   367→   367→      const res = await fetch('/api/auth/session')
+   368→   368→      if (res.ok) {
+   369→   369→        const data = await res.json()
+   370→   370→        if (data.authenticated && data.user) {
+   371→   371→          set({ user: data.user, isAuthenticated: true })
+   372→   372→          // CRITICAL: Await Supabase tables check, THEN fetch data
+   373→   373→          // Without this, fetchMemories runs while supabaseReady is still false
+   374→   374→          await get().checkSupabaseTables()
+   375→   375→          // Now fetch data with correct supabaseReady state
+   376→   376→          await Promise.all([
+   377→   377→            get().fetchMemories(),
+   378→   378→            get().fetchCollections(),
+   379→   379→          ])
+   380→   380→          return
+   381→   381→        }
+   382→   382→      }
+   383→   383→    } catch { /* ignore */ }
+   384→   384→    // No Supabase session — stay as local user (not gated)
+   385→   385→    set({ isAuthenticated: false })
+   386→   386→    // Still try to fetch from Prisma API for local data
+   387→   387→    await Promise.all([
+   388→   388→      get().fetchMemories(),
+   389→   389→      get().fetchCollections(),
+   390→   390→    ])
+   391→   391→  },
+   392→   392→
+   393→   393→  // Check if Supabase tables exist for the current user
+   394→   394→  checkSupabaseTables: async () => {
+   395→   395→    try {
+   396→   396→      const supabase = await getSupabaseBrowser()
+   397→   397→      const { data: { session } } = await supabase.auth.getSession()
+   398→   398→      if (!session) {
+   399→   399→        set({ supabaseReady: false })
+   400→   400→        return false
+   401→   401→      }
+   402→   402→
+   403→   403→      // Try a minimal query to see if the memories table exists
+   404→   404→      const { error } = await supabase
+   405→   405→        .from('memories')
+   406→   406→        .select('id')
+   407→   407→        .eq('user_id', session.user.id)
+   408→   408→        .limit(1)
+   409→   409→
+   410→   410→      const ready = !error
+   411→   411→      set({ supabaseReady: ready })
+   412→   412→      return ready
+   413→   413→    } catch {
+   414→   414→      set({ supabaseReady: false })
+   415→   415→      return false
+   416→   416→    }
+   417→   417→  },
+   418→   418→
+   419→   419→  // Data
+   420→   420→  memories: [],
+   421→   421→  collections: [],
+   422→   422→  isLoading: false,
+   423→   423→
+   424→   424→  // Selected
+   425→   425→  selectedMemoryId: null,
+   426→   426→  selectedCollectionId: null,
+   427→   427→
+   428→   428→  // Search
+   429→   429→  searchQuery: '',
+   430→   430→  setSearchQuery: (q) => set({ searchQuery: q }),
+   431→   431→  filterType: 'all',
+   432→   432→  setFilterType: (t) => set({ filterType: t }),
+   433→   433→
+   434→   434→  // Chat
+   435→   435→  chatMessages: [],
+   436→   436→  addChatMessage: (msg) => set((s) => ({ chatMessages: [...s.chatMessages, msg] })),
+   437→   437→  clearChat: () => set({ chatMessages: [] }),
+   438→   438→
+   439→   439→  // Theme
+   440→   440→  darkMode: false,
+   441→   441→  toggleDarkMode: () => set((s) => ({ darkMode: !s.darkMode })),
+   442→   442→
+   443→   443→  // Data actions
+   444→   444→  setMemories: (memories) => set({ memories }),
+   445→   445→  setCollections: (collections) => set({ collections }),
+   446→   446→  setLoading: (isLoading) => set({ isLoading }),
+   447→   447→  setSelectedMemoryId: (id) => set({ selectedMemoryId: id }),
+   448→   448→  setSelectedCollectionId: (id) => set({ selectedCollectionId: id }),
+   449→   449→  addMemory: (memory) => set((s) => ({ memories: [memory, ...s.memories] })),
+   450→   450→  updateMemory: (id, updates) => set((s) => ({
+   451→   451→    memories: s.memories.map((m) => (m.id === id ? { ...m, ...updates } : m)),
+   452→   452→  })),
+   453→   453→  deleteMemory: (id) => set((s) => ({
+   454→   454→    memories: s.memories.filter((m) => m.id !== id),
+   455→   455→  })),
+   456→   456→  addCollection: (collection) => set((s) => ({
+   457→   457→    collections: [...s.collections, collection],
+   458→   458→  })),
+   459→   459→  updateCollection: (id, updates) => set((s) => ({
+   460→   460→    collections: s.collections.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+   461→   461→  })),
+   462→   462→  deleteCollection: (id) => set((s) => ({
+   463→   463→    collections: s.collections.filter((c) => c.id !== id),
+   464→   464→  })),
+   465→   465→
+   466→   466→  // ── Fetch Memories ──────────────────────────────────────────────────
+   467→   467→  fetchMemories: async () => {
+   468→   468→    set({ isLoading: true })
+   469→   469→    const state = get()
+   470→   470→
+   471→   471→    // ── Authenticated + Supabase ready: fetch from Supabase directly ──
+   472→   472→    if (state.isAuthenticated && state.supabaseReady) {
+   473→   473→      try {
+   474→   474→        const supabase = await getSupabaseBrowser()
+   475→   475→        const { data: { session } } = await supabase.auth.getSession()
+   476→   476→        if (!session) throw new Error('No session')
+   477→   477→
+   478→   478→        const { data, error } = await supabase
+   479→   479→          .from('memories')
+   480→   480→          .select('*, memory_collections(collection_id, collections(id, name, color, icon))')
+   481→   481→          .eq('user_id', session.user.id)
+   482→   482→          .order('created_at', { ascending: false })
+   483→   483→
+   484→   484→        if (error) throw error
+   485→   485→
+   486→   486→        const memories = (data as SupabaseMemoryRow[]).map(mapSupabaseMemory)
+   487→   487→        set({ memories, isLoading: false })
+   488→   488→        return
+   489→   489→      } catch (supabaseErr) {
+   490→   490→        console.warn('Supabase fetch failed, falling back to API:', supabaseErr instanceof Error ? supabaseErr.message : 'Unknown')
+   491→   491→        // Fall through to API
+   492→   492→      }
+   493→   493→    }
+   494→   494→
+   495→   495→    // ── Fallback: fetch from API (works for both auth and non-auth) ──
+   496→   496→    try {
+   497→   497→      const res = await fetch('/api/memories')
+   498→   498→      if (res.ok) {
+   499→   499→        const memories = await res.json()
+   500→   500→        set({ memories, isLoading: false })
+   501→   501→        return
+   502→   502→      }
+   503→   503→    } catch (e) {
+   504→   504→      console.error('Failed to fetch memories via API:', e)
+   505→   505→    }
+   506→   506→    set({ isLoading: false })
+   507→   507→  },
+   508→   508→
+   509→   509→  // ── Fetch Collections ───────────────────────────────────────────────
+   510→   510→  fetchCollections: async () => {
+   511→   511→    const state = get()
+   512→   512→    if (state.isAuthenticated && state.supabaseReady) {
+   513→   513→      try {
+   514→   514→        const supabase = await getSupabaseBrowser()
+   515→   515→        const { data: { session } } = await supabase.auth.getSession()
+   516→   516→        if (!session) throw new Error('No session')
+   517→   517→
+   518→   518→        const { data, error } = await supabase
+   519→   519→          .from('collections')
+   520→   520→          .select('*, memory_collections(id)')
+   521→   521→          .eq('user_id', session.user.id)
+   522→   522→          .order('name', { ascending: true })
+   523→   523→
+   524→   524→        if (error) throw error
+   525→   525→
+   526→   526→        const collections = (data as SupabaseCollectionRow[]).map(mapSupabaseCollection)
+   527→   527→        set({ collections })
+   528→   528→        return
+   529→   529→      } catch {
+   530→   530→        // Fall through to Prisma API
+   531→   531→      }
+   532→   532→    }
+   533→   533→
+   534→   534→    // Fallback: fetch from Prisma API
+   535→   535→    try {
+   536→   536→      const res = await fetch('/api/collections')
+   537→   537→      if (res.ok) {
+   538→   538→        const collections = await res.json()
+   539→   539→        set({ collections })
+   540→   540→      }
+   541→   541→    } catch (e) {
+   542→   542→      console.error('Failed to fetch collections:', e)
+   543→   543→    }
+   544→   544→  },
+   545→   545→
+   546→   546→  // ── Delete Memory from DB (Supabase or Prisma) ─────────────────────
+   547→   547→  deleteMemoryFromDB: async (id: string) => {
+   548→   548→    const state = get()
+   549→   549→
+   550→   550→    // Authenticated + Supabase: delete from Supabase
+   551→   551→    if (state.isAuthenticated && state.supabaseReady) {
+   552→   552→      try {
+   553→   553→        const supabase = await getSupabaseBrowser()
+   554→   554→        const { data: { session } } = await supabase.auth.getSession()
+   555→   555→        if (session) {
+   556→   556→          await supabase.from('memories').delete().eq('id', id)
+   557→   557→        }
+   558→   558→      } catch {
+   559→   559→        // Fall through to Prisma API
+   560→   560→      }
+   561→   561→    }
+   562→   562→
+   563→   563→    // Also try Prisma API (works for both local and authenticated users)
+   564→   564→    try {
+   565→   565→      await fetch(`/api/memories/${id}`, { method: 'DELETE' })
+   566→   566→    } catch {
+   567→   567→      // Silent fail
+   568→   568→    }
+   569→   569→
+   570→   570→    // Remove from local state
+   571→   571→    get().deleteMemory(id)
+   572→   572→  },
+   573→   573→
+   574→   574→  // ── Background AI auto-tagging (non-blocking) ──────────────────────
+   575→   575→  backgroundAutoTag: async (memoryId: string, content: string, title: string) => {
+   576→   576→    try {
+   577→   577→      const res = await fetch('/api/auto-tag', {
+   578→   578→        method: 'POST',
+   579→   579→        headers: { 'Content-Type': 'application/json' },
+   580→   580→        body: JSON.stringify({ content: `${title} ${content}`.slice(0, 1000) }),
+   581→   581→      })
+   582→   582→
+   583→   583→      if (!res.ok) {
+   584→   584→        console.warn('Auto-tag API returned:', res.status)
+   585→   585→        return
+   586→   586→      }
+   587→   587→
+   588→   588→      const { tags: aiTags, category } = await res.json()
+   589→   589→
+   590→   590→      // FIX: Proceed even if tags are empty — category assignment is still valuable
+   591→   591→      const currentState = get()
+   592→   592→
+   593→   593→      // ── Update tags in DB if AI returned any ──
+   594→   594→      if (aiTags && aiTags.length > 0) {
+   595→   595→        if (currentState.isAuthenticated && currentState.supabaseReady) {
+   596→   596→          try {
+   597→   597→            const supabase = await getSupabaseBrowser()
+   598→   598→            const { data: { session } } = await supabase.auth.getSession()
+   599→   599→            if (session) {
+   600→   600→              await supabase
+   601→   601→                .from('memories')
+   602→   602→                .update({ tags: aiTags.join(',') })
+   603→   603→                .eq('id', memoryId)
+   604→   604→            }
+   605→   605→          } catch {
+   606→   606→            // Silently fail Supabase update — local state still updates
+   607→   607→          }
+   608→   608→        } else {
+   609→   609→          // Update via Prisma API
+   610→   610→          try {
+   611→   611→            await fetch(`/api/memories/${memoryId}`, {
+   612→   612→              method: 'PATCH',
+   613→   613→              headers: { 'Content-Type': 'application/json' },
+   614→   614→              body: JSON.stringify({ tags: aiTags }),
+   615→   615→            })
+   616→   616→          } catch {
+   617→   617→            // Silently fail
+   618→   618→          }
+   619→   619→        }
+   620→   620→
+   621→   621→        // Update the local state so tags appear immediately
+   622→   622→        get().updateMemory(memoryId, { tags: aiTags })
+   623→   623→      }
+   624→   624→
+   625→   625→      // ── AUTO-COLLECTION: Create collection from AI category if it doesn't exist ──
+   626→   626→      // FIX: Use get().collections for FRESH state (not stale snapshot from top of function)
+   627→   627→      if (category?.trim()) {
+   628→   628→        const normalizedCategory = category.trim()
+   629→   629→        // CRITICAL: Read fresh collections from store — previous auto-tag calls may have added new ones
+   630→   630→        const freshCollections = get().collections
+   631→   631→        const existingCollection = freshCollections.find(
+   632→   632→          (c) => c.name.toLowerCase() === normalizedCategory.toLowerCase()
+   633→   633→        )
+   634→   634→
+   635→   635→        if (!existingCollection) {
+   636→   636→          // Create the collection dynamically
+   637→   637→          const newCollection = await get().saveCollection({
+   638→   638→            name: normalizedCategory,
+   639→   639→            color: '#6D597A',
+   640→   640→            icon: '📁',
+   641→   641→          })
+   642→   642→
+   643→   643→          if (newCollection) {
+   644→   644→            // Link the memory to the new collection
+   645→   645→            const linkState = get()
+   646→   646→            if (linkState.isAuthenticated && linkState.supabaseReady) {
+   647→   647→              try {
+   648→   648→                const supabase = await getSupabaseBrowser()
+   649→   649→                const { data: { session } } = await supabase.auth.getSession()
+   650→   650→                if (session) {
+   651→   651→                  await supabase.from('memory_collections').insert({
+   652→   652→                    memory_id: memoryId,
+   653→   653→                    collection_id: newCollection.id,
+   654→   654→                  })
+   655→   655→                }
+   656→   656→              } catch (linkErr) {
+   657→   657→                console.warn('Failed to link memory to collection:', linkErr instanceof Error ? linkErr.message : 'Unknown')
+   658→   658→              }
+   659→   659→            } else {
+   660→   660→              try {
+   661→   661→                await fetch(`/api/memories/${memoryId}`, {
+   662→   662→                  method: 'PATCH',
+   663→   663→                  headers: { 'Content-Type': 'application/json' },
+   664→   664→                  body: JSON.stringify({ collectionIds: [newCollection.id] }),
+   665→   665→                })
+   666→   666→              } catch {
+   667→   667→                // Silently fail
+   668→   668→              }
+   669→   669→            }
+   670→   670→
+   671→   671→            // Update local memory with the new collection
+   672→   672→            const currentMemory = get().memories.find((m) => m.id === memoryId)
+   673→   673→            if (currentMemory) {
+   674→   674→              get().updateMemory(memoryId, {
+   675→   675→                collections: [...currentMemory.collections, {
+   676→   676→                  id: newCollection.id,
+   677→   677→                  name: newCollection.name,
+   678→   678→                  color: newCollection.color,
+   679→   679→                  icon: newCollection.icon,
+   680→   680→                }],
+   681→   681→              })
+   682→   682→            }
+   683→   683→
+   684→   684→            // Re-fetch collections to ensure store stays in sync with DB
+   685→   685→            get().fetchCollections()
+   686→   686→          }
+   687→   687→        } else {
+   688→   688→          // Collection already exists — link the memory to it
+   689→   689→          // FIX: Read fresh memory from store for already-linked check
+   690→   690→          const freshMemory = get().memories.find((m) => m.id === memoryId)
+   691→   691→          const alreadyLinked = freshMemory?.collections.some((c) => c.id === existingCollection.id)
+   692→   692→
+   693→   693→          if (!alreadyLinked) {
+   694→   694→            const linkState = get()
+   695→   695→            if (linkState.isAuthenticated && linkState.supabaseReady) {
+   696→   696→              try {
+   697→   697→                const supabase = await getSupabaseBrowser()
+   698→   698→                const { data: { session } } = await supabase.auth.getSession()
+   699→   699→                if (session) {
+   700→   700→                  await supabase.from('memory_collections').insert({
+   701→   701→                    memory_id: memoryId,
+   702→   702→                    collection_id: existingCollection.id,
+   703→   703→                  })
+   704→   704→                }
+   705→   705→              } catch (linkErr) {
+   706→   706→                console.warn('Failed to link memory to existing collection:', linkErr instanceof Error ? linkErr.message : 'Unknown')
+   707→   707→              }
+   708→   708→            } else {
+   709→   709→              try {
+   710→   710→                await fetch(`/api/memories/${memoryId}`, {
+   711→   711→                  method: 'PATCH',
+   712→   712→                  headers: { 'Content-Type': 'application/json' },
+   713→   713→                  body: JSON.stringify({ collectionIds: [existingCollection.id] }),
+   714→   714→                })
+   715→   715→              } catch {
+   716→   716→                // Silently fail
+   717→   717→              }
+   718→   718→            }
+   719→   719→
+   720→   720→            // Update local memory with the collection
+   721→   721→            const currentMemory = get().memories.find((m) => m.id === memoryId)
+   722→   722→            if (currentMemory) {
+   723→   723→              get().updateMemory(memoryId, {
+   724→   724→                collections: [...currentMemory.collections, {
+   725→   725→                  id: existingCollection.id,
+   726→   726→                  name: existingCollection.name,
+   727→   727→                  color: existingCollection.color,
+   728→   728→                  icon: existingCollection.icon,
+   729→   729→                }],
+   730→   730→              })
+   731→   731→            }
+   732→   732→          }
+   733→   733→        }
+   734→   734→      }
+   735→   735→    } catch (err) {
+   736→   736→      // Non-blocking: never fail the save flow
+   737→   737→      console.warn('backgroundAutoTag failed:', err instanceof Error ? err.message : 'Unknown')
+   738→   738→    }
+   739→   739→  },
+   740→   740→
+   741→   741→  // ── Background AI summary generation (non-blocking) ──────────────────
+   742→   742→  backgroundAutoSummary: async (memoryId: string, content: string) => {
+   743→   743→    try {
+   744→   744→      const res = await fetch('/api/ai/summary', {
+   745→   745→        method: 'POST',
+   746→   746→        headers: { 'Content-Type': 'application/json' },
+   747→   747→        body: JSON.stringify({ content: content.slice(0, 1000) }),
+   748→   748→      })
+   749→   749→
+   750→   750→      if (!res.ok) return
+   751→   751→
+   752→   752→      const { summary } = await res.json()
+   753→   753→      if (!summary?.trim()) return
+   754→   754→
+   755→   755→      const state = get()
+   756→   756→
+   757→   757→      // Update in Supabase if authenticated + ready
+   758→   758→      if (state.isAuthenticated && state.supabaseReady) {
+   759→   759→        try {
+   760→   760→          const supabase = await getSupabaseBrowser()
+   761→   761→          const { data: { session } } = await supabase.auth.getSession()
+   762→   762→          if (session) {
+   763→   763→            await supabase
+   764→   764→              .from('memories')
+   765→   765→              .update({ summary })
+   766→   766→              .eq('id', memoryId)
+   767→   767→          }
+   768→   768→        } catch {
+   769→   769→          // Silently fail
+   770→   770→        }
+   771→   771→      } else {
+   772→   772→        // Update via Prisma API
+   773→   773→        try {
+   774→   774→          await fetch(`/api/memories/${memoryId}`, {
+   775→   775→            method: 'PATCH',
+   776→   776→            headers: { 'Content-Type': 'application/json' },
+   777→   777→            body: JSON.stringify({ summary }),
+   778→   778→          })
+   779→   779→        } catch {
+   780→   780→          // Silently fail
+   781→   781→        }
+   782→   782→      }
+   783→   783→
+   784→   784→      // Update the local state so summary appears immediately
+   785→   785→      get().updateMemory(memoryId, { summary })
+   786→   786→    } catch {
+   787→   787→      // Non-blocking: never fail the save flow
+   788→   788→    }
+   789→   789→  },
+   790→   790→
+   791→   791→  // ── Background link content reading (non-blocking) ──────────────────
+   792→   792→  backgroundReadLink: async (memoryId: string, url: string) => {
+   793→   793→    try {
+   794→   794→      const res = await fetch('/api/ai/read-link', {
+   795→   795→        method: 'POST',
+   796→   796→        headers: { 'Content-Type': 'application/json' },
+   797→   797→        body: JSON.stringify({ url }),
+   798→   798→      })
+   799→   799→
+   800→   800→      if (!res.ok) return
+   801→   801→
+   802→   802→      const { title, content, description } = await res.json()
+   803→   803→      if (!content?.trim()) return
+   804→   804→
+   805→   805→      const state = get()
+   806→   806→
+   807→   807→      // Build enriched content: keep original URL + append extracted content
+   808→   808→      const enrichedContent = `${url}\n\n---\n\n${content}`.slice(0, 3000)
+   809→   809→
+   810→   810→      // Update in Supabase if authenticated + ready
+   811→   811→      if (state.isAuthenticated && state.supabaseReady) {
+   812→   812→        try {
+   813→   813→          const supabase = await getSupabaseBrowser()
+   814→   814→          const { data: { session } } = await supabase.auth.getSession()
+   815→   815→          if (session) {
+   816→   816→            const updateData: Record<string, string> = { content: enrichedContent }
+   817→   817→            if (title?.trim()) updateData.title = title
+   818→   818→            if (description?.trim()) updateData.summary = description
+   819→   819→            await supabase
+   820→   820→              .from('memories')
+   821→   821→              .update(updateData)
+   822→   822→              .eq('id', memoryId)
+   823→   823→          }
+   824→   824→        } catch {
+   825→   825→          // Silently fail
+   826→   826→        }
+   827→   827→      } else {
+   828→   828→        // Update via Prisma API
+   829→   829→        try {
+   830→   830→          const updateData: Record<string, unknown> = { content: enrichedContent }
+   831→   831→          if (title?.trim()) updateData.title = title
+   832→   832→          if (description?.trim()) updateData.summary = description
+   833→   833→          await fetch(`/api/memories/${memoryId}`, {
+   834→   834→            method: 'PATCH',
+   835→   835→            headers: { 'Content-Type': 'application/json' },
+   836→   836→            body: JSON.stringify(updateData),
+   837→   837→          })
+   838→   838→        } catch {
+   839→   839→          // Silently fail
+   840→   840→        }
+   841→   841→      }
+   842→   842→
+   843→   843→      // Update local state
+   844→   844→      const localUpdate: Partial<Memory> = { content: enrichedContent }
+   845→   845→      if (title?.trim()) localUpdate.title = title
+   846→   846→      if (description?.trim()) localUpdate.summary = description
+   847→   847→      get().updateMemory(memoryId, localUpdate)
+   848→   848→
+   849→   849→      // After reading the link, also tag and summarize it with AI
+   850→   850→      get().backgroundAutoTag(memoryId, enrichedContent, title || '')
+   851→   851→      get().backgroundAutoSummary(memoryId, enrichedContent)
+   852→   852→      get().backgroundGenerateEmbedding(memoryId, enrichedContent)
+   853→   853→    } catch {
+   854→   854→      // Non-blocking: never fail the save flow
+   855→   855→    }
+   856→   856→  },
+   857→   857→
+   858→   858→  // ── Background embedding generation for semantic search (non-blocking) ──
+   859→   859→  backgroundGenerateEmbedding: async (memoryId: string, content: string) => {
+   860→   860→    try {
+   861→   861→      await fetch('/api/generate-embedding', {
+   862→   862→        method: 'POST',
+   863→   863→        headers: { 'Content-Type': 'application/json' },
+   864→   864→        body: JSON.stringify({ memoryId, content: content.slice(0, 2000) }),
+   865→   865→      })
+   866→   866→      // Success is silent — the embedding is now stored in Supabase
+   867→   867→    } catch {
+   868→   868→      // Non-blocking: never fail the save flow
+   869→   869→    }
+   870→   870→  },
+   871→   871→
+   872→   872→  // ── Save Memory (Supabase-aware, optimistic UI, token-saving) ────────
+   873→   873→  saveMemory: async (data) => {
+   874→   874→    const state = get()
+   875→   875→    const { type, title, content, sourceUrl, tags, collectionIds } = data
+   876→   876→
+   877→   877→    // ── STEP 1: Smart Token Saver — local, free, instant tags ──────────
+   878→   878→    const fullText = `${title || ''} ${content || ''}`.trim()
+   879→   879→    const localTags = getLocalTags(fullText)
+   880→   880→    const wordCount = fullText.split(/\s+/).filter(Boolean).length
+   881→   881→
+   882→   882→    // If <20 words AND local tags found: use only local tags, skip AI
+   883→   883→    const isShortNote = wordCount < 20 && localTags.length > 0
+   884→   884→
+   885→   885→    // Merge tags: caller tags > local tags > extended auto tags
+   886→   886→    let finalTags = tags
+   887→   887→    if (!tags || tags.length === 0) {
+   888→   888→      if (localTags.length > 0) {
+   889→   889→        finalTags = localTags
+   890→   890→      } else if (content?.trim()) {
+   891→   891→        const autoTags = autoGenerateTags(content, title || '')
+   892→   892→        if (autoTags.length > 0) finalTags = autoTags
+   893→   893→      }
+   894→   894→    }
+   895→   895→
+   896→   896→    // ── Authenticated + Supabase ready: save to Supabase directly ──
+   897→   897→    if (state.isAuthenticated && state.supabaseReady) {
+   898→   898→      try {
+   899→   899→        const supabase = await getSupabaseBrowser()
+   900→   900→        const { data: { session } } = await supabase.auth.getSession()
+   901→   901→        if (!session) throw new Error('No session')
+   902→   902→
+   903→   903→        const { data: memoryRow, error } = await supabase
+   904→   904→          .from('memories')
+   905→   905→          .insert({
+   906→   906→            user_id: session.user.id,
+   907→   907→            type: type || 'text',
+   908→   908→            title: title || '',
+   909→   909→            content: content || '',
+   910→   910→            source_url: sourceUrl || null,
+   911→   911→            tags: finalTags ? (Array.isArray(finalTags) ? finalTags.join(',') : finalTags) : '',
+   912→   912→          })
+   913→   913→          .select('*, memory_collections(collection_id, collections(id, name, color, icon))')
+   914→   914→          .single()
+   915→   915→
+   916→   916→        if (error) throw error
+   917→   917→
+   918→   918→        const memory = mapSupabaseMemory(memoryRow as SupabaseMemoryRow)
+   919→   919→
+   920→   920→        // If collectionIds provided, create junction rows
+   921→   921→        if (collectionIds?.length) {
+   922→   922→          await supabase.from('memory_collections').insert(
+   923→   923→            collectionIds.map((cid: string) => ({
+   924→   924→              memory_id: memory.id,
+   925→   925→              collection_id: cid,
+   926→   926→            }))
+   927→   927→          )
+   928→   928→        }
+   929→   929→
+   930→   930→        // Optimistic UI: add to store instantly
+   931→   931→        get().addMemory(memory)
+   932→   932→
+   933→   933→        // ── STEP 2: ALWAYS run AI auto-tagging (for category assignment + collections) ──
+   934→   934→        if (content?.trim()) {
+   935→   935→          get().backgroundAutoTag(memory.id, content, title || '')
+   936→   936→        }
+   937→   937→
+   938→   938→        // ── STEP 3: AI summary generation — skip for short notes (saves tokens) ──
+   939→   939→        if (content?.trim() && !isShortNote) {
+   940→   940→          get().backgroundAutoSummary(memory.id, content)
+   941→   941→        }
+   942→   942→
+   943→   943→        // ── STEP 4: If this is a link, read the URL content (background, non-blocking) ──
+   944→   944→        if (sourceUrl?.trim()) {
+   945→   945→          get().backgroundReadLink(memory.id, sourceUrl)
+   946→   946→        }
+   947→   947→
+   948→   948→        // ── STEP 5: Generate embedding for semantic search (background, non-blocking) ──
+   949→   949→        if (content?.trim()) {
+   950→   950→          get().backgroundGenerateEmbedding(memory.id, content)
+   951→   951→        }
+   952→   952→
+   953→   953→        return memory
+   954→   954→      } catch {
+   955→   955→        // Fall through to Prisma API
+   956→   956→      }
+   957→   957→    }
+   958→   958→
+   959→   959→    // ── Fallback: save via Prisma API ──
+   960→   960→    try {
+   961→   961→      const res = await fetch('/api/memories', {
+   962→   962→        method: 'POST',
+   963→   963→        headers: { 'Content-Type': 'application/json' },
+   964→   964→        body: JSON.stringify({
+   965→   965→          type,
+   966→   966→          title,
+   967→   967→          content,
+   968→   968→          sourceUrl,
+   969→   969→          tags: finalTags,
+   970→   970→          collectionIds,
+   971→   971→        }),
+   972→   972→      })
+   973→   973→      if (res.ok) {
+   974→   974→        const memory: Memory = await res.json()
+   975→   975→        get().addMemory(memory)
+   976→   976→
+   977→   977→        // ── STEP 2: ALWAYS run AI auto-tagging (for category assignment + collections) ──
+   978→   978→        if (content?.trim()) {
+   979→   979→          get().backgroundAutoTag(memory.id, content, title || '')
+   980→   980→        }
+   981→   981→
+   982→   982→        // ── STEP 3: AI summary generation — skip for short notes (saves tokens) ──
+   983→   983→        if (content?.trim() && !isShortNote) {
+   984→   984→          get().backgroundAutoSummary(memory.id, content)
+   985→   985→        }
+   986→   986→
+   987→   987→        // ── STEP 4: If this is a link, read the URL content (background, non-blocking) ──
+   988→   988→        if (sourceUrl?.trim()) {
+   989→   989→          get().backgroundReadLink(memory.id, sourceUrl)
+   990→   990→        }
+   991→   991→
+   992→   992→        // ── STEP 5: Generate embedding for semantic search (background, non-blocking) ──
+   993→   993→        if (content?.trim()) {
+   994→   994→          get().backgroundGenerateEmbedding(memory.id, content)
+   995→   995→        }
+   996→   996→
+   997→   997→        return memory
+   998→   998→      }
+   999→   999→    } catch {
+  1000→  1000→      // Silent fail
+  1001→  1001→    }
+  1002→  1002→    return null
+  1003→  1003→  },
+  1004→  1004→
+  1005→  1005→  // ── Save Collection (Supabase-aware) ────────────────────────────────
+  1006→  1006→  saveCollection: async (data) => {
+  1007→  1007→    const state = get()
+  1008→  1008→    const { name, color, icon } = data
+  1009→  1009→
+  1010→  1010→    // ── Authenticated + Supabase ready: save to Supabase directly ──
+  1011→  1011→    if (state.isAuthenticated && state.supabaseReady) {
+  1012→  1012→      try {
+  1013→  1013→        const supabase = await getSupabaseBrowser()
+  1014→  1014→        const { data: { session } } = await supabase.auth.getSession()
+  1015→  1015→        if (!session) throw new Error('No session')
+  1016→  1016→
+  1017→  1017→        const { data: collectionRow, error } = await supabase
+  1018→  1018→          .from('collections')
+  1019→  1019→          .insert({
+  1020→  1020→            user_id: session.user.id,
+  1021→  1021→            name: name.trim(),
+  1022→  1022→            color: color || '#6D597A',
+  1023→  1023→            icon: icon || '📁',
+  1024→  1024→          })
+  1025→  1025→          .select('*, memory_collections(id)')
+  1026→  1026→          .single()
+  1027→  1027→
+  1028→  1028→        if (error) throw error
+  1029→  1029→
+  1030→  1030→        const collection = mapSupabaseCollection(collectionRow as SupabaseCollectionRow)
+  1031→  1031→        get().addCollection(collection)
+  1032→  1032→        return collection
+  1033→  1033→      } catch {
+  1034→  1034→        // Fall through to Prisma API
+  1035→  1035→      }
+  1036→  1036→    }
+  1037→  1037→
+  1038→  1038→    // ── Fallback: save via Prisma API ──
+  1039→  1039→    try {
+  1040→  1040→      const res = await fetch('/api/collections', {
+  1041→  1041→        method: 'POST',
+  1042→  1042→        headers: { 'Content-Type': 'application/json' },
+  1043→  1043→        body: JSON.stringify({ name: name.trim(), color: color || '#6D597A', icon: icon || '📁' }),
+  1044→  1044→      })
+  1045→  1045→      if (res.ok) {
+  1046→  1046→        const collection: Collection = await res.json()
+  1047→  1047→        get().addCollection(collection)
+  1048→  1048→        return collection
+  1049→  1049→      }
+  1050→  1050→    } catch {
+  1051→  1051→      // Silent fail
+  1052→  1052→    }
+  1053→  1053→    return null
+  1054→  1054→  },
+  1055→  1055→}))
+  1056→  1056→
