@@ -19,10 +19,10 @@ import {
   Palette,
   Check,
   Loader2,
+  Sparkles,
+  X,
 } from 'lucide-react'
 import { useAetherStore, type Collection } from '@/lib/aether-store'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -32,7 +32,6 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogTrigger,
   DialogClose,
 } from '@/components/ui/dialog'
 import {
@@ -56,17 +55,11 @@ import { cn } from '@/lib/utils'
 
 // ─── Preset Colors ──────────────────────────────────────────────────
 const PRESET_COLORS = [
-  '#6D597A', // Primary purple
-  '#E07A5F', // Warm coral
-  '#81B29A', // Sage green
-  '#F2CC8F', // Soft gold
-  '#3D405B', // Deep navy
-  '#E76F51', // Burnt orange
-  '#2A9D8F', // Teal
-  '#E9C46A', // Honey
+  '#6D597A', '#E07A5F', '#81B29A', '#F2CC8F',
+  '#3D405B', '#E76F51', '#2A9D8F', '#E9C46A',
 ]
 
-// ─── Preset Icons (lucide components + emoji fallback) ──────────────
+// ─── Preset Icons ────────────────────────────────────────────────────
 const PRESET_ICONS = [
   { emoji: '💡', label: 'Idea', Icon: Lightbulb },
   { emoji: '❤️', label: 'Heart', Icon: Heart },
@@ -94,25 +87,6 @@ function PresetIcon({ preset, selected }: { preset: { emoji: string; label: stri
   return <Icon className={cn('size-4', selected ? 'text-primary' : 'text-muted-foreground')} />
 }
 
-// ─── Animation variants ─────────────────────────────────────────────
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.05 },
-  },
-}
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 16, scale: 0.96 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { duration: 0.35, ease: 'easeOut' },
-  },
-}
-
 // ─── New Collection Dialog ──────────────────────────────────────────
 function NewCollectionDialog({
   open,
@@ -130,7 +104,6 @@ function NewCollectionDialog({
   const [icon, setIcon] = useState(PRESET_ICONS[0].emoji)
   const [isSaving, setIsSaving] = useState(false)
 
-  // Pre-fill form when editing
   React.useEffect(() => {
     if (editingCollection) {
       setName(editingCollection.name)
@@ -149,33 +122,19 @@ function NewCollectionDialog({
 
     try {
       if (editingCollection) {
-        // Update existing collection
         const res = await fetch(`/api/collections/${editingCollection.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: name.trim(),
-            color,
-            icon,
-          }),
+          body: JSON.stringify({ name: name.trim(), color, icon }),
         })
         if (res.ok) {
-          updateCollection(editingCollection.id, {
-            name: name.trim(),
-            color,
-            icon,
-          })
+          updateCollection(editingCollection.id, { name: name.trim(), color, icon })
         }
       } else {
-        // Create new collection
         const res = await fetch('/api/collections', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: name.trim(),
-            color,
-            icon,
-          }),
+          body: JSON.stringify({ name: name.trim(), color, icon }),
         })
         if (res.ok) {
           const collection: Collection = await res.json()
@@ -192,22 +151,19 @@ function NewCollectionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[420px]">
+      <DialogContent className="sm:max-w-[420px] bg-white/95 border-black/[0.04]">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="text-sm font-medium">
             {editingCollection ? 'Edit Collection' : 'New Collection'}
           </DialogTitle>
-          <DialogDescription>
-            {editingCollection
-              ? 'Update your collection details.'
-              : 'Organize your memories into themed collections.'}
+          <DialogDescription className="text-xs text-zinc-400">
+            {editingCollection ? 'Update details.' : 'Organize memories by theme.'}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-5 py-2">
-          {/* Name */}
+        <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <Label htmlFor="collection-name">Name</Label>
+            <Label htmlFor="collection-name" className="text-xs text-zinc-400">Name</Label>
             <Input
               id="collection-name"
               placeholder="e.g. Design Inspiration"
@@ -216,50 +172,42 @@ function NewCollectionDialog({
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && name.trim()) handleSave()
               }}
-              className="h-10"
+              className="h-10 text-sm border-b border-zinc-200 focus:border-purple-500 bg-transparent rounded-none px-0 shadow-none focus-visible:ring-0"
             />
           </div>
 
-          {/* Color Picker */}
           <div className="space-y-2">
-            <Label>Color</Label>
-            <div className="flex flex-wrap gap-2.5">
+            <Label className="text-xs text-zinc-400">Color</Label>
+            <div className="flex flex-wrap gap-2">
               {PRESET_COLORS.map((c) => (
                 <button
                   key={c}
                   onClick={() => setColor(c)}
                   className={cn(
-                    'size-9 rounded-full transition-all duration-150 flex items-center justify-center',
-                    'hover:scale-110 active:scale-95',
-                    'ring-2 ring-offset-2 ring-offset-background',
-                    color === c ? 'ring-primary/50 scale-110' : 'ring-transparent'
+                    'size-8 rounded-full transition-all duration-200 flex items-center justify-center',
+                    color === c ? 'ring-2 ring-offset-2 ring-purple-300/50 scale-110' : 'hover:scale-110'
                   )}
                   style={{ backgroundColor: c }}
                   aria-label={`Select color ${c}`}
                 >
-                  {color === c && (
-                    <Check className="size-4 text-white drop-shadow-sm" />
-                  )}
+                  {color === c && <Check className="size-3 text-white drop-shadow-sm" />}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Icon Selector */}
           <div className="space-y-2">
-            <Label>Icon</Label>
-            <div className="flex flex-wrap gap-2.5">
+            <Label className="text-xs text-zinc-400">Icon</Label>
+            <div className="flex flex-wrap gap-2">
               {PRESET_ICONS.map((preset) => (
                 <button
                   key={preset.emoji}
                   onClick={() => setIcon(preset.emoji)}
                   className={cn(
-                    'size-10 rounded-xl transition-all duration-150 flex items-center justify-center',
-                    'hover:scale-110 active:scale-95',
-                    'border-2',
+                    'size-9 rounded-xl transition-all duration-200 flex items-center justify-center',
                     icon === preset.emoji
-                      ? 'border-primary bg-primary/10 scale-110'
-                      : 'border-border bg-card hover:border-primary/30'
+                      ? 'border-2 border-primary bg-primary/10 scale-105'
+                      : 'border border-black/[0.04] bg-white/60 hover:border-purple-200'
                   )}
                   aria-label={`Select ${preset.label} icon`}
                 >
@@ -272,25 +220,18 @@ function NewCollectionDialog({
 
         <DialogFooter>
           <DialogClose asChild>
-            <Button variant="outline" disabled={isSaving}>
+            <Button variant="ghost" disabled={isSaving} className="text-xs">
               Cancel
             </Button>
           </DialogClose>
           <Button
             onClick={handleSave}
             disabled={!name.trim() || isSaving}
-            className="bg-gradient-to-r from-primary to-[#8B6F9A] text-primary-foreground hover:opacity-90"
+            className="bg-zinc-900 hover:bg-zinc-800 text-white text-xs"
           >
             {isSaving ? (
-              <>
-                <Loader2 className="size-4 animate-spin" />
-                Saving...
-              </>
-            ) : editingCollection ? (
-              'Update'
-            ) : (
-              'Create'
-            )}
+              <><Loader2 className="size-3.5 animate-spin" /></>
+            ) : editingCollection ? 'Update' : 'Create'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -313,51 +254,50 @@ function CollectionCard({
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
-        <motion.div variants={cardVariants} whileTap={{ scale: 0.98 }}>
-          <Card
-            className="relative overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group bg-white/60 border border-black/[0.03] hover:bg-white/70 hover:border-black/[0.06]"
+        <motion.div whileTap={{ scale: 0.98 }}>
+          <div
             onClick={onClick}
+            className="relative overflow-hidden rounded-xl p-4 transition-all duration-200 cursor-pointer group bg-white/60 border border-black/[0.03] hover:bg-white/80 hover:border-black/[0.06]"
           >
             {/* Colored left border */}
             <div
-              className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-xl"
+              className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl"
               style={{ backgroundColor: collection.color }}
             />
 
-            <CardContent className="p-4 pl-5 space-y-3">
+            <div className="pl-3 space-y-2.5">
               {/* Icon + Name */}
               <div className="flex items-center gap-2.5">
                 <div
-                  className="size-9 rounded-lg flex items-center justify-center shrink-0"
-                  style={{ backgroundColor: `${collection.color}18` }}
+                  className="size-8 rounded-lg flex items-center justify-center shrink-0"
+                  style={{ backgroundColor: `${collection.color}15` }}
                 >
                   <CollectionIcon emoji={collection.icon} color={collection.color} />
                 </div>
-                <p className="text-sm font-semibold text-foreground truncate flex-1">
+                <p className="text-sm font-medium text-zinc-800 truncate flex-1">
                   {collection.name}
                 </p>
               </div>
 
               {/* Memory count */}
               <div className="flex items-center gap-1.5">
-                <BookOpen className="size-3.5 text-muted-foreground" />
-                <p className="text-xs text-muted-foreground">
-                  {collection.memoryCount}{' '}
-                  {collection.memoryCount === 1 ? 'memory' : 'memories'}
+                <BookOpen className="size-3 text-zinc-400" />
+                <p className="text-[11px] text-zinc-400 font-medium">
+                  {collection.memoryCount}
                 </p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </motion.div>
       </ContextMenuTrigger>
 
       <ContextMenuContent align="start">
-        <ContextMenuItem onClick={onEdit} className="gap-2">
-          <Pencil className="size-4" />
+        <ContextMenuItem onClick={onEdit} className="gap-2 text-xs">
+          <Pencil className="size-3.5" />
           Edit
         </ContextMenuItem>
-        <ContextMenuItem onClick={onDelete} className="gap-2 text-destructive focus:text-destructive">
-          <Trash2 className="size-4" />
+        <ContextMenuItem onClick={onDelete} className="gap-2 text-destructive focus:text-destructive text-xs">
+          <Trash2 className="size-3.5" />
           Delete
         </ContextMenuItem>
       </ContextMenuContent>
@@ -365,35 +305,99 @@ function CollectionCard({
   )
 }
 
-// ─── Empty State ────────────────────────────────────────────────────
-function EmptyState({ onCreateClick }: { onCreateClick: () => void }) {
+// ─── Collection Recap Drawer ────────────────────────────────────────
+function CollectionRecapDrawer({
+  collection,
+  onClose,
+}: {
+  collection: Collection
+  onClose: () => void
+}) {
+  const [recap, setRecap] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  React.useEffect(() => {
+    const fetchRecap = async () => {
+      try {
+        const res = await fetch('/api/collection-recap', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ collectionId: collection.id }),
+        })
+
+        if (res.ok) {
+          const data = await res.json()
+          setRecap(data.recap || 'No memories in this collection yet.')
+        } else {
+          setRecap('Could not generate recap.')
+        }
+      } catch {
+        setRecap('Could not generate recap.')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchRecap()
+  }, [collection.id])
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: 'easeOut' }}
-      className="flex flex-col items-center justify-center py-16 text-center"
-    >
-      <div className="size-20 rounded-2xl bg-[#6D597A]/10 flex items-center justify-center mb-6">
-        <FolderOpen className="size-10 text-[#6D597A]/40" />
-      </div>
+    <>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.15 }}
+        className="fixed inset-0 bg-black/10 backdrop-blur-[2px] z-50"
+        onClick={onClose}
+      />
 
-      <h3 className="text-lg font-semibold text-foreground mb-2">
-        No collections yet
-      </h3>
-
-      <p className="text-sm text-muted-foreground max-w-[260px] mb-6">
-        Create collections to organize your memories by topic, project, or anything you like.
-      </p>
-
-      <Button
-        onClick={onCreateClick}
-        className="gap-2 bg-gradient-to-r from-primary to-[#8B6F9A] text-primary-foreground hover:opacity-90 shadow-md"
+      <motion.div
+        initial={{ x: '100%' }}
+        animate={{ x: 0 }}
+        exit={{ x: '100%' }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        className="fixed top-0 right-0 h-full z-50 w-full max-w-md overflow-y-auto bg-white/95 backdrop-blur-2xl border-l border-black/[0.04]"
       >
-        <Plus className="size-4" />
-        Create First Collection
-      </Button>
-    </motion.div>
+        <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 bg-white/95 backdrop-blur-xl border-b border-black/[0.04]">
+          <div className="flex items-center gap-2.5">
+            <div
+              className="size-7 rounded-lg flex items-center justify-center shrink-0"
+              style={{ backgroundColor: `${collection.color}15` }}
+            >
+              <CollectionIcon emoji={collection.icon} color={collection.color} />
+            </div>
+            <h2 className="text-sm font-medium tracking-tight text-zinc-800 pr-4 truncate">
+              {collection.name}
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="size-7 rounded-lg flex items-center justify-center transition-colors duration-200 shrink-0 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50"
+          >
+            <X className="size-3.5" />
+          </button>
+        </div>
+
+        <div className="px-6 py-6">
+          {isLoading ? (
+            <div className="flex items-center gap-2">
+              <Loader2 className="size-4 animate-spin text-purple-400" />
+              <span className="text-xs text-zinc-400 font-medium">Synthesizing...</span>
+            </div>
+          ) : (
+            <div className="rounded-xl p-4 bg-purple-50/30 border border-purple-100/20">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Sparkles className="w-3 h-3 text-purple-400" />
+                <span className="text-[10px] uppercase tracking-[0.12em] text-purple-400 font-medium">Recap</span>
+              </div>
+              <p className="text-sm leading-relaxed text-zinc-600 font-medium">
+                {recap}
+              </p>
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </>
   )
 }
 
@@ -410,8 +414,8 @@ export function Collections() {
   const [editingCollection, setEditingCollection] = useState<Collection | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Collection | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [recapCollection, setRecapCollection] = useState<Collection | null>(null)
 
-  // Sort collections alphabetically
   const sortedCollections = useMemo(
     () => [...collections].sort((a, b) => a.name.localeCompare(b.name)),
     [collections]
@@ -419,10 +423,10 @@ export function Collections() {
 
   const handleCardClick = useCallback(
     (collection: Collection) => {
-      setSelectedCollectionId(collection.id)
-      setCurrentView('memories')
+      // Open recap drawer instead of navigating away
+      setRecapCollection(collection)
     },
-    [setSelectedCollectionId, setCurrentView]
+    []
   )
 
   const handleEdit = useCallback((collection: Collection) => {
@@ -455,44 +459,39 @@ export function Collections() {
 
   return (
     <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
       className="space-y-6 max-w-5xl mx-auto pb-24 md:pb-8"
     >
       {/* ── Header ──────────────────────────────────────────────────── */}
-      <motion.div
-        variants={cardVariants}
-        className="flex items-center justify-between"
-      >
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-            <FolderOpen className="size-7 text-[#6D597A]" />
-            Collections
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {collections.length} {collections.length === 1 ? 'collection' : 'collections'}
-          </p>
-        </div>
-
+      <div className="flex items-center justify-between">
+        <h1 className="text-lg font-medium tracking-tight text-zinc-800">
+          Collections
+        </h1>
         <Button
           onClick={handleNewCollection}
-          className="gap-2 bg-gradient-to-r from-primary to-[#8B6F9A] text-primary-foreground hover:opacity-90 shadow-md"
+          className="gap-1.5 bg-zinc-900 hover:bg-zinc-800 text-white text-xs shadow-sm h-8 px-3"
         >
-          <Plus className="size-4" />
-          <span className="hidden sm:inline">New Collection</span>
-          <span className="sm:hidden">New</span>
+          <Plus className="size-3.5" />
+          New
         </Button>
-      </motion.div>
+      </div>
 
       {/* ── Collection Grid ─────────────────────────────────────────── */}
       {collections.length === 0 ? (
-        <EmptyState onCreateClick={handleNewCollection} />
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <FolderOpen className="size-10 text-zinc-200 mb-3" />
+          <Button
+            onClick={handleNewCollection}
+            className="gap-1.5 bg-zinc-900 hover:bg-zinc-800 text-white text-xs shadow-sm"
+          >
+            <Plus className="size-3.5" />
+            Create
+          </Button>
+        </div>
       ) : (
-        <motion.div
-          variants={containerVariants}
-          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4"
-        >
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5">
           {sortedCollections.map((collection) => (
             <CollectionCard
               key={collection.id}
@@ -502,48 +501,49 @@ export function Collections() {
               onDelete={() => setDeleteTarget(collection)}
             />
           ))}
-        </motion.div>
+        </div>
       )}
 
-      {/* ── New / Edit Dialog ───────────────────────────────────────── */}
+      {/* ── Dialogs ─────────────────────────────────────────────────── */}
       <NewCollectionDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         editingCollection={editingCollection}
       />
 
-      {/* ── Delete Confirmation ─────────────────────────────────────── */}
       <AlertDialog
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-white/95 border-black/[0.04]">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Collection</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete &ldquo;{deleteTarget?.name}&rdquo;? Memories in this
-              collection won&apos;t be deleted, but they&apos;ll be removed from this collection.
+            <AlertDialogTitle className="text-sm font-medium">Delete Collection</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs text-zinc-400">
+              Delete &ldquo;{deleteTarget?.name}&rdquo;? Memories won&apos;t be deleted.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting} className="text-xs">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-xs"
             >
-              {isDeleting ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                'Delete'
-              )}
+              {isDeleting ? <Loader2 className="size-3.5 animate-spin" /> : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ── Collection Recap Drawer ─────────────────────────────────── */}
+      <AnimatePresence>
+        {recapCollection && (
+          <CollectionRecapDrawer
+            collection={recapCollection}
+            onClose={() => setRecapCollection(null)}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }

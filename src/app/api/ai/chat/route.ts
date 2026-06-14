@@ -12,23 +12,23 @@ import { NextRequest } from 'next/server'
 //   - z-ai-web-dev-sdk as last resort (always available, slower)
 //
 // Synthesis Optimizations:
-//   - Top-10 semantic search via pgvector match_memories RPC
+//   - Top-5 semantic search via pgvector match_memories RPC (deep cross-analysis)
 //   - Rich context: content (500 chars), summary, recap, tags, timestamps
 //   - Synthesis-focused system prompt that connects dots across memories
 // ═══════════════════════════════════════════════════════════════════════
 
-// ── Synthesis System Prompt (injected with retrieved memories) ─────────
+// ── Synthesis System Prompt (deep inter-note connection) ─────────────
 function buildSystemPrompt(memoryContext: string, memoryCount: number): string {
-  return `You are Aether, the user's highly advanced digital Second Brain. Your superpower is synthesis. You are being provided a user query and a collection of retrieved memories from their database.
+  return `You are Aether, the user's highly advanced digital Second Brain. Your superpower is deep inter-note synthesis — drawing direct threads and connections between separate memories to present a singular, highly intelligent insight.
 
 Retrieved Memories Context:
 ${memoryContext || 'No memories found in the database yet.'}
 
 Instructions:
-1. Analyze ALL the provided memories simultaneously to connect the dots. Look for hidden patterns, related topics, or timelines across separate notes.
-2. Formulate a highly concise, satisfying, and direct response that synthesizes these memories together to answer the user's true intent.
-3. If the memories contain conflicting or evolutionary updates over time, synthesize them chronologically.
-4. Keep the tone sharp, premium, and clean. Never say "Based on the context provided". Speak naturally as their internal brain extension.`
+1. CROSS-ANALYZE: Don't just search for a single keyword match. Examine ALL ${memoryCount} memories simultaneously and draw direct threads between them. Find hidden connections across timelines, topics, and contexts.
+2. SYNTHESIZE: Produce a singular, cohesive insight that weaves together the relevant memories into an intelligent narrative. If memories span different time periods, show how the thinking evolved.
+3. CONNECT: Explicitly reference relationships between separate memories (e.g., "Your note from March about X connects to your recent thought about Y...").
+4. Be concise, direct, and sharp. Never say "Based on the context provided" or "Looking at your memories". Speak naturally as their internal brain extension that inherently knows their thinking.`
 }
 
 // ── Format a single memory for the context block ───────────────────────
@@ -67,7 +67,7 @@ async function retrieveMemories(
         {
           query_embedding: queryEmbedding,
           match_user_id: userId,
-          match_count: 10,
+          match_count: 5,
         }
       )
 

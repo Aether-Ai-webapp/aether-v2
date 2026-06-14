@@ -1,0 +1,731 @@
+     1→'use client'
+     2→
+     3→import React, { useState, useEffect, useMemo } from 'react'
+     4→import { motion } from 'framer-motion'
+     5→import {
+     6→  User,
+     7→  Sun,
+     8→  Crown,
+     9→  Download,
+    10→  Trash2,
+    11→  HardDrive,
+    12→  Info,
+    13→  Pencil,
+    14→  Check,
+    15→  X,
+    16→  Sparkles,
+    17→  Brain,
+    18→  LogOut,
+    19→  LogIn,
+    20→  Cloud,
+    21→  CloudOff,
+    22→  Copy,
+    23→  CheckCircle2,
+    24→  AlertCircle,
+    25→  ExternalLink,
+    26→} from 'lucide-react'
+    27→import { useAetherStore } from '@/lib/aether-store'
+    28→import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+    29→import { Switch } from '@/components/ui/switch'
+    30→import { Button } from '@/components/ui/button'
+    31→import { Separator } from '@/components/ui/separator'
+    32→import {
+    33→  Dialog,
+    34→  DialogContent,
+    35→  DialogHeader,
+    36→  DialogTitle,
+    37→  DialogTrigger,
+    38→  DialogFooter,
+    39→  DialogClose,
+    40→} from '@/components/ui/dialog'
+    41→import {
+    42→  AlertDialog,
+    43→  AlertDialogAction,
+    44→  AlertDialogCancel,
+    45→  AlertDialogContent,
+    46→  AlertDialogDescription,
+    47→  AlertDialogFooter,
+    48→  AlertDialogHeader,
+    49→  AlertDialogTitle,
+    50→  AlertDialogTrigger,
+    51→} from '@/components/ui/alert-dialog'
+    52→import { Input } from '@/components/ui/input'
+    53→import { Badge } from '@/components/ui/badge'
+    54→import { Progress } from '@/components/ui/progress'
+    55→import { toast } from 'sonner'
+    56→import { cn } from '@/lib/utils'
+    57→
+    58→// ─── Animation variants ────────────────────────────────────────────
+    59→const containerVariants = {
+    60→  hidden: { opacity: 0 },
+    61→  visible: {
+    62→    opacity: 1,
+    63→    transition: { staggerChildren: 0.08 },
+    64→  },
+    65→}
+    66→
+    67→const itemVariants = {
+    68→  hidden: { opacity: 0, y: 16 },
+    69→  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+    70→}
+    71→
+    72→// ─── Profile defaults ───────────────────────────────────────────────
+    73→const defaultProfile = {
+    74→  name: 'Aether User',
+    75→  email: 'hello@aether.app',
+    76→}
+    77→
+    78→// ─── Feature list for plan comparison ───────────────────────────────
+    79→const planFeatures = [
+    80→  { label: 'Memories', free: 'Up to 15', pro: 'Unlimited' },
+    81→  { label: 'AI Chat', free: '3 / day', pro: 'Unlimited' },
+    82→  { label: 'Auto-tagging', free: 'Basic', pro: 'Advanced' },
+    83→  { label: 'Priority support', free: false, pro: true },
+    84→]
+    85→
+    86→// ─── Component ──────────────────────────────────────────────────────
+    87→export function Settings() {
+    88→  const { darkMode, toggleDarkMode, memories, collections, user, logout, isAuthenticated, setShowAuthModal, supabaseReady } = useAetherStore()
+    89→  const [profile, setProfile] = useState({ name: user?.name || 'Aether User', email: user?.email || 'hello@aether.app' })
+    90→  const [editName, setEditName] = useState(profile.name)
+    91→  const [editEmail, setEditEmail] = useState(profile.email)
+    92→  const [editDialogOpen, setEditDialogOpen] = useState(false)
+    93→
+    94→  // ── Supabase setup state ────────────────────────────────────────
+    95→  const [checkingSetup, setCheckingSetup] = useState(false)
+    96→  const [sqlCopied, setSqlCopied] = useState(false)
+    97→
+    98→  // Derive setup status from store state
+    99→  const effectiveSetupStatus = useMemo(() => {
+   100→    if (!isAuthenticated) return 'idle' as const
+   101→    if (supabaseReady) return 'ready' as const
+   102→    if (checkingSetup) return 'checking' as const
+   103→    return 'not-setup' as const
+   104→  }, [isAuthenticated, supabaseReady, checkingSetup])
+   105→
+   106→  const checkSetup = async () => {
+   107→    setCheckingSetup(true)
+   108→    try {
+   109→      const res = await fetch('/api/setup/supabase')
+   110→      const data = await res.json()
+   111→      if (data.tablesExist) {
+   112→        // Update store - the store already tracks supabaseReady
+   113→        useAetherStore.setState({ supabaseReady: true })
+   114→      }
+   115→    } catch {
+   116→      // Error case - already reflected in effectiveSetupStatus
+   117→    }
+   118→    setCheckingSetup(false)
+   119→  }
+   120→
+   121→  const copySqlToClipboard = async () => {
+   122→    try {
+   123→      const res = await fetch('/api/setup/sql')
+   124→      if (res.ok) {
+   125→        const { sql } = await res.json()
+   126→        await navigator.clipboard.writeText(sql)
+   127→        setSqlCopied(true)
+   128→        toast.success('SQL copied to clipboard!')
+   129→        setTimeout(() => setSqlCopied(false), 2000)
+   130→      }
+   131→    } catch {
+   132→      toast.error('Failed to copy SQL')
+   133→    }
+   134→  }
+   135→
+   136→  // Sync dark mode class on <html>
+   137→  useEffect(() => {
+   138→    if (darkMode) {
+   139→      document.documentElement.classList.add('dark')
+   140→    } else {
+   141→      document.documentElement.classList.remove('dark')
+   142→    }
+   143→  }, [darkMode])
+   144→
+   145→  // Storage usage (simulated: ~2 KB per memory + ~0.5 KB per collection)
+   146→  const usedKB = memories.length * 2 + collections.length * 0.5
+   147→  const maxKB = 500 // Free plan: 500 KB
+   148→  const usagePercent = Math.min((usedKB / maxKB) * 100, 100)
+   149→
+   150→  const handleEditProfile = () => {
+   151→    setEditName(profile.name)
+   152→    setEditEmail(profile.email)
+   153→    setEditDialogOpen(true)
+   154→  }
+   155→
+   156→  const handleSaveProfile = async () => {
+   157→    const newName = editName.trim() || defaultProfile.name
+   158→    const newEmail = editEmail.trim() || defaultProfile.email
+   159→
+   160→    // Update local state immediately
+   161→    setProfile({ name: newName, email: newEmail })
+   162→    setEditDialogOpen(false)
+   163→
+   164→    // Update Supabase auth if authenticated
+   165→    if (isAuthenticated) {
+   166→      try {
+   167→        const { createClient } = await import('@/lib/supabase/browser')
+   168→        const supabase = createClient()
+   169→
+   170→        // Update name in user metadata
+   171→        const { error: nameError } = await supabase.auth.updateUser({
+   172→          data: { full_name: newName }
+   173→        })
+   174→        if (nameError) throw nameError
+   175→
+   176→        // Update email if it changed
+   177→        if (newEmail !== profile.email) {
+   178→          const { error: emailError } = await supabase.auth.updateUser({
+   179→            email: newEmail
+   180→          })
+   181→          if (emailError) throw emailError
+   182→        }
+   183→
+   184→        // Update the store user
+   185→        useAetherStore.setState((state) => ({
+   186→          user: state.user ? { ...state.user, name: newName, email: newEmail } : null
+   187→        }))
+   188→
+   189→        toast.success('Profile updated!')
+   190→      } catch {
+   191→        toast.error('Failed to update profile. Please try again.')
+   192→      }
+   193→    } else {
+   194→      toast.success('Profile updated!')
+   195→    }
+   196→  }
+   197→
+   198→  const handleDarkModeToggle = () => {
+   199→    toggleDarkMode()
+   200→    toast.success(darkMode ? 'Light mode enabled' : 'Dark mode enabled')
+   201→  }
+   202→
+   203→  const handleExportPDF = () => {
+   204→    const memoriesHTML = memories.map((m) => {
+   205→      const date = new Date(m.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+   206→      const tags = m.tags.length > 0
+   207→        ? `<div style="margin-top: 6px;">${m.tags.map(t => `<span style="display: inline-block; background: #f3e8ff; color: #7c3aed; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 3px; margin-right: 3px; text-transform: uppercase; letter-spacing: 0.5px;">${t}</span>`).join('')}</div>`
+   208→        : ''
+   209→      const summary = m.summary
+   210→        ? `<div style="background: #faf5ff; border-left: 3px solid #7c3aed; padding: 10px 14px; margin-top: 8px; border-radius: 0 6px 6px 0;"><p style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #7c3aed; margin: 0 0 4px 0;">AI Summary</p><p style="font-size: 12px; line-height: 1.5; color: #374151; margin: 0;">${m.summary}</p></div>`
+   211→        : ''
+   212→      const typeLabel = m.type !== 'text' ? `<span style="display: inline-block; background: #ede9fe; color: #6d28d9; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 3px; margin-left: 6px; text-transform: uppercase;">${m.type}</span>` : ''
+   213→
+   214→      return `
+   215→        <div style="margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #f3f4f6;">
+   216→          <h3 style="font-size: 15px; font-weight: 600; margin: 0 0 4px 0; color: #1a1a2e;">${m.title || 'Untitled Memory'}${typeLabel}</h3>
+   217→          <p style="font-size: 11px; color: #9ca3af; margin: 0;">${date}</p>
+   218→          ${tags}
+   219→          ${summary}
+   220→          <p style="font-size: 13px; line-height: 1.6; color: #4b5563; margin-top: 8px; white-space: pre-wrap;">${m.content}</p>
+   221→          ${m.sourceUrl ? `<p style="font-size: 11px; color: #7c3aed; margin-top: 6px; word-break: break-all;">🔗 ${m.sourceUrl}</p>` : ''}
+   222→        </div>
+   223→      `
+   224→    }).join('')
+   225→
+   226→    const printWindow = window.open('', '_blank')
+   227→    if (printWindow) {
+   228→      printWindow.document.write(`
+   229→        <html>
+   230→          <head>
+   231→            <title>Aether — Memory Export</title>
+   232→            <style>
+   233→              @media print {
+   234→                @page { margin: 15mm; }
+   235→                body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+   236→              }
+   237→              body { font-family: system-ui, -apple-system, sans-serif; color: #1a1a2e; max-width: 750px; margin: 0 auto; padding: 40px 30px; }
+   238→            </style>
+   239→          </head>
+   240→          <body>
+   241→            <div style="border-bottom: 3px solid #7c3aed; padding-bottom: 16px; margin-bottom: 32px;">
+   242→              <h1 style="font-size: 28px; font-weight: 800; margin: 0; color: #1a1a2e;">✨ Aether</h1>
+   243→              <p style="font-size: 13px; color: #6b7280; margin: 4px 0 0 0;">Your Second Brain — Memory Export</p>
+   244→              <p style="font-size: 11px; color: #9ca3af; margin: 4px 0 0 0;">Exported on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })} · ${memories.length} memories</p>
+   245→            </div>
+   246→            ${memoriesHTML}
+   247→            <div style="margin-top: 40px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center;">
+   248→              <p style="font-size: 10px; color: #d1d5db; margin: 0;">Exported from Aether — Your Second Brain</p>
+   249→            </div>
+   250→          </body>
+   251→        </html>
+   252→      `)
+   253→      printWindow.document.close()
+   254→      setTimeout(() => { printWindow.print() }, 400)
+   255→    }
+   256→  }
+   257→
+   258→  const handleClearAllData = () => {
+   259→    toast('All data cleared', { description: 'This is a demo — no data was actually deleted.' })
+   260→  }
+   261→
+   262→  const handleUpgrade = () => {
+   263→    toast('Coming soon', { description: 'Pro plan will be available soon!' })
+   264→  }
+   265→
+   266→  const userInitial = profile.name.charAt(0).toUpperCase()
+   267→
+   268→  return (
+   269→    <motion.div
+   270→      variants={containerVariants}
+   271→      initial="hidden"
+   272→      animate="visible"
+   273→      className="space-y-6 max-w-2xl mx-auto pb-24 md:pb-8"
+   274→    >
+   275→      {/* ── Page Title ─────────────────────────────────────────────── */}
+   276→      <motion.div variants={itemVariants}>
+   277→        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
+   278→          <SettingsIcon className="size-7 text-primary" />
+   279→          Settings
+   280→        </h1>
+   281→        <p className="text-sm text-muted-foreground mt-1">
+   282→          Manage your account, appearance, and data.
+   283→        </p>
+   284→      </motion.div>
+   285→
+   286→      {/* ── 1. Profile Section ─────────────────────────────────────── */}
+   287→      <motion.div variants={itemVariants}>
+   288→        <Card className="border-0 shadow-sm bg-card">
+   289→          <CardHeader className="pb-3">
+   290→            <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+   291→              <User className="size-4 text-[#6D597A]" />
+   292→              Profile
+   293→            </CardTitle>
+   294→          </CardHeader>
+   295→          <CardContent className="pt-0">
+   296→            <div className="flex items-center gap-4">
+   297→              {/* Avatar */}
+   298→              <div className="flex items-center justify-center size-14 rounded-full bg-gradient-to-br from-primary to-[#8B6F9A] text-primary-foreground font-bold text-xl shrink-0 shadow-md">
+   299→                {userInitial}
+   300→              </div>
+   301→
+   302→              {/* Info */}
+   303→              <div className="flex-1 min-w-0">
+   304→                <p className="text-base font-semibold text-foreground truncate">
+   305→                  {profile.name}
+   306→                </p>
+   307→                <p className="text-sm text-muted-foreground truncate">
+   308→                  {profile.email}
+   309→                </p>
+   310→              </div>
+   311→
+   312→              {/* Edit Button */}
+   313→              <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+   314→                <DialogTrigger asChild>
+   315→                  <Button
+   316→                    variant="outline"
+   317→                    size="sm"
+   318→                    className="gap-1.5 shrink-0"
+   319→                    onClick={handleEditProfile}
+   320→                  >
+   321→                    <Pencil className="size-3.5" />
+   322→                    <span className="hidden sm:inline">Edit Profile</span>
+   323→                    <span className="sm:hidden">Edit</span>
+   324→                  </Button>
+   325→                </DialogTrigger>
+   326→                <DialogContent className="sm:max-w-md">
+   327→                  <DialogHeader>
+   328→                    <DialogTitle>Edit Profile</DialogTitle>
+   329→                  </DialogHeader>
+   330→                  <div className="space-y-4 py-2">
+   331→                    <div className="space-y-2">
+   332→                      <label htmlFor="edit-name" className="text-sm font-medium text-foreground">
+   333→                        Name
+   334→                      </label>
+   335→                      <Input
+   336→                        id="edit-name"
+   337→                        value={editName}
+   338→                        onChange={(e) => setEditName(e.target.value)}
+   339→                        placeholder="Your name"
+   340→                      />
+   341→                    </div>
+   342→                    <div className="space-y-2">
+   343→                      <label htmlFor="edit-email" className="text-sm font-medium text-foreground">
+   344→                        Email
+   345→                      </label>
+   346→                      <Input
+   347→                        id="edit-email"
+   348→                        type="email"
+   349→                        value={editEmail}
+   350→                        onChange={(e) => setEditEmail(e.target.value)}
+   351→                        placeholder="your@email.com"
+   352→                      />
+   353→                    </div>
+   354→                  </div>
+   355→                  <DialogFooter className="gap-2 sm:gap-0">
+   356→                    <DialogClose asChild>
+   357→                      <Button variant="outline">Cancel</Button>
+   358→                    </DialogClose>
+   359→                    <Button onClick={handleSaveProfile} className="gap-1.5">
+   360→                      <Check className="size-3.5" />
+   361→                      Save
+   362→                    </Button>
+   363→                  </DialogFooter>
+   364→                </DialogContent>
+   365→              </Dialog>
+   366→
+   367→              {/* Auth Button */}
+   368→              {isAuthenticated ? (
+   369→                <Button
+   370→                  variant="ghost"
+   371→                  size="sm"
+   372→                  className="gap-1.5 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+   373→                  onClick={() => { logout(); toast.success('Signed out'); }}
+   374→                >
+   375→                  <LogOut className="size-3.5" />
+   376→                  <span className="hidden sm:inline">Sign Out</span>
+   377→                </Button>
+   378→              ) : (
+   379→                <Button
+   380→                  variant="outline"
+   381→                  size="sm"
+   382→                  className="gap-1.5 shrink-0"
+   383→                  onClick={() => setShowAuthModal(true)}
+   384→                >
+   385→                  <LogIn className="size-3.5" />
+   386→                  <span className="hidden sm:inline">Sign In</span>
+   387→                </Button>
+   388→              )}
+   389→            </div>
+   390→          </CardContent>
+   391→        </Card>
+   392→      </motion.div>
+   393→
+   394→      {/* ── 2. Cloud Sync (Supabase) Section ────────────────────────── */}
+   395→      {isAuthenticated && (
+   396→        <motion.div variants={itemVariants}>
+   397→          <Card className="border-0 shadow-sm bg-card">
+   398→            <CardHeader className="pb-3">
+   399→              <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+   400→                {effectiveSetupStatus === 'ready' ? (
+   401→                  <Cloud className="size-4 text-[#81B29A]" />
+   402→                ) : (
+   403→                  <CloudOff className="size-4 text-[#E07A5F]" />
+   404→                )}
+   405→                Cloud Sync
+   406→              </CardTitle>
+   407→            </CardHeader>
+   408→            <CardContent className="pt-0 space-y-4">
+   409→              {effectiveSetupStatus === 'ready' ? (
+   410→                <div className="flex items-center gap-3 p-3 rounded-xl bg-[#81B29A]/10">
+   411→                  <CheckCircle2 className="size-5 text-[#81B29A] shrink-0" />
+   412→                  <div>
+   413→                    <p className="text-sm font-medium text-foreground">Connected to Supabase</p>
+   414→                    <p className="text-xs text-muted-foreground">Your memories sync across devices.</p>
+   415→                  </div>
+   416→                </div>
+   417→              ) : effectiveSetupStatus === 'not-setup' || effectiveSetupStatus === 'error' ? (
+   418→                <div className="space-y-3">
+   419→                  <div className="flex items-center gap-3 p-3 rounded-xl bg-[#E07A5F]/10">
+   420→                    <AlertCircle className="size-5 text-[#E07A5F] shrink-0" />
+   421→                    <div>
+   422→                      <p className="text-sm font-medium text-foreground">Database tables not found</p>
+   423→                      <p className="text-xs text-muted-foreground">Run the setup SQL in your Supabase dashboard to enable cloud sync.</p>
+   424→                    </div>
+   425→                  </div>
+   426→                  <div className="flex flex-col sm:flex-row gap-2">
+   427→                    <Button
+   428→                      variant="outline"
+   429→                      size="sm"
+   430→                      className="gap-1.5"
+   431→                      onClick={copySqlToClipboard}
+   432→                    >
+   433→                      {sqlCopied ? (
+   434→                        <CheckCircle2 className="size-3.5 text-[#81B29A]" />
+   435→                      ) : (
+   436→                        <Copy className="size-3.5" />
+   437→                      )}
+   438→                      {sqlCopied ? 'Copied!' : 'Copy Setup SQL'}
+   439→                    </Button>
+   440→                    <Button
+   441→                      variant="outline"
+   442→                      size="sm"
+   443→                      className="gap-1.5"
+   444→                      onClick={() => window.open('https://supabase.com/dashboard/project/kzjntvjzjhbodehuqxbf/sql', '_blank')}
+   445→                    >
+   446→                      <ExternalLink className="size-3.5" />
+   447→                      Open SQL Editor
+   448→                    </Button>
+   449→                    <Button
+   450→                      variant="outline"
+   451→                      size="sm"
+   452→                      className="gap-1.5"
+   453→                      onClick={checkSetup}
+   454→                    >
+   455→                      <Check className="size-3.5" />
+   456→                      Re-check
+   457→                    </Button>
+   458→                  </div>
+   459→                </div>
+   460→              ) : effectiveSetupStatus === 'checking' ? (
+   461→                <div className="flex items-center gap-3 p-3 rounded-xl bg-muted">
+   462→                  <Cloud className="size-5 text-muted-foreground shrink-0 animate-pulse" />
+   463→                  <p className="text-sm text-muted-foreground">Checking database connection...</p>
+   464→                </div>
+   465→              ) : null}
+   466→            </CardContent>
+   467→          </Card>
+   468→        </motion.div>
+   469→      )}
+   470→
+   471→      {/* ── 3. Appearance Section ──────────────────────────────────── */}
+   472→      <motion.div variants={itemVariants}>
+   473→        <Card className="border-0 shadow-sm bg-card">
+   474→          <CardHeader className="pb-3">
+   475→            <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+   476→              <Sun className="size-4 text-[#F2CC8F]" />
+   477→              Appearance
+   478→            </CardTitle>
+   479→          </CardHeader>
+   480→          <CardContent className="pt-0">
+   481→            <div className="flex items-center justify-between gap-4">
+   482→              <div className="flex items-center gap-3">
+   483→                <div className="flex items-center justify-center size-9 rounded-lg shrink-0 bg-amber-50">
+   484→                  <Sun className="size-4 text-amber-400" />
+   485→                </div>
+   486→                <div>
+   487→                  <p className="text-sm font-medium text-foreground">Light Mode</p>
+   488→                  <p className="text-xs text-muted-foreground">Warm and serene</p>
+   489→                </div>
+   490→              </div>
+   491→              <Switch
+   492→                checked={darkMode}
+   493→                onCheckedChange={handleDarkModeToggle}
+   494→                aria-label="Toggle dark mode"
+   495→              />
+   496→            </div>
+   497→          </CardContent>
+   498→        </Card>
+   499→      </motion.div>
+   500→
+   501→      {/* ── 4. Plan Section ────────────────────────────────────────── */}
+   502→      <motion.div variants={itemVariants}>
+   503→        <Card className="border-0 shadow-sm bg-card">
+   504→          <CardHeader className="pb-3">
+   505→            <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+   506→              <Crown className="size-4 text-[#F2CC8F]" />
+   507→              Plan
+   508→            </CardTitle>
+   509→          </CardHeader>
+   510→          <CardContent className="pt-0 space-y-4">
+   511→            {/* Current Plan Card */}
+   512→            <div className="flex items-center gap-4 p-4 rounded-xl bg-[#F5EDE6] dark:bg-[#252540] transition-colors">
+   513→              <div className="flex items-center justify-center size-10 rounded-full bg-[#F2CC8F]/30 dark:bg-[#F2CC8F]/20 shrink-0">
+   514→                <Crown className="size-5 text-[#F2CC8F]" />
+   515→              </div>
+   516→              <div className="flex-1 min-w-0">
+   517→                <div className="flex items-center gap-2">
+   518→                  <p className="text-sm font-semibold text-foreground">Free Plan</p>
+   519→                  <Badge className="bg-[#6D597A]/10 text-[#6D597A] dark:bg-[#B8A9C9]/20 dark:text-[#B8A9C9] border-0 text-[10px] px-1.5 py-0 h-5">
+   520→                    Current
+   521→                  </Badge>
+   522→                </div>
+   523→                <p className="text-xs text-muted-foreground mt-0.5">
+   524→                  Up to 15 memories · 3 AI chats/day
+   525→                </p>
+   526→              </div>
+   527→              <Button
+   528→                size="sm"
+   529→                className="gap-1.5 bg-gradient-to-r from-[#6D597A] to-[#8B6F9A] text-white hover:opacity-90 shadow-sm shrink-0"
+   530→                onClick={handleUpgrade}
+   531→              >
+   532→                <Sparkles className="size-3.5" />
+   533→                <span className="hidden sm:inline">Upgrade to Pro</span>
+   534→                <span className="sm:hidden">Pro</span>
+   535→              </Button>
+   536→            </div>
+   537→
+   538→            {/* Feature Comparison */}
+   539→            <div className="space-y-2">
+   540→              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+   541→                Feature Comparison
+   542→              </p>
+   543→              <div className="rounded-lg border border-border overflow-hidden">
+   544→                <table className="w-full text-sm">
+   545→                  <thead>
+   546→                    <tr className="bg-muted/50">
+   547→                      <th className="text-left py-2 px-3 text-xs font-medium text-muted-foreground">Feature</th>
+   548→                      <th className="text-center py-2 px-3 text-xs font-medium text-muted-foreground">Free</th>
+   549→                      <th className="text-center py-2 px-3 text-xs font-medium text-[#6D597A] dark:text-[#B8A9C9]">Pro</th>
+   550→                    </tr>
+   551→                  </thead>
+   552→                  <tbody>
+   553→                    {planFeatures.map((feature, i) => (
+   554→                      <tr key={feature.label} className={cn(i < planFeatures.length - 1 && 'border-b border-border')}>
+   555→                        <td className="py-2 px-3 text-xs text-foreground">{feature.label}</td>
+   556→                        <td className="py-2 px-3 text-center text-xs text-muted-foreground">
+   557→                          {typeof feature.free === 'boolean' ? (
+   558→                            feature.free ? (
+   559→                              <Check className="size-3.5 mx-auto text-[#81B29A]" />
+   560→                            ) : (
+   561→                              <X className="size-3.5 mx-auto text-muted-foreground/40" />
+   562→                            )
+   563→                          ) : (
+   564→                            feature.free
+   565→                          )}
+   566→                        </td>
+   567→                        <td className="py-2 px-3 text-center text-xs text-foreground">
+   568→                          {typeof feature.pro === 'boolean' ? (
+   569→                            feature.pro ? (
+   570→                              <Check className="size-3.5 mx-auto text-[#81B29A]" />
+   571→                            ) : (
+   572→                              <X className="size-3.5 mx-auto text-muted-foreground/40" />
+   573→                            )
+   574→                          ) : (
+   575→                            feature.pro
+   576→                          )}
+   577→                        </td>
+   578→                      </tr>
+   579→                    ))}
+   580→                  </tbody>
+   581→                </table>
+   582→              </div>
+   583→            </div>
+   584→          </CardContent>
+   585→        </Card>
+   586→      </motion.div>
+   587→
+   588→      {/* ── 5. Data Section ────────────────────────────────────────── */}
+   589→      <motion.div variants={itemVariants}>
+   590→        <Card className="border-0 shadow-sm bg-card">
+   591→          <CardHeader className="pb-3">
+   592→            <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+   593→              <HardDrive className="size-4 text-[#81B29A]" />
+   594→              Data
+   595→            </CardTitle>
+   596→          </CardHeader>
+   597→          <CardContent className="pt-0 space-y-5">
+   598→            {/* Storage Usage */}
+   599→            <div className="space-y-2">
+   600→              <div className="flex items-center justify-between">
+   601→                <p className="text-sm font-medium text-foreground">Storage Usage</p>
+   602→                <p className="text-xs text-muted-foreground">
+   603→                  {usedKB.toFixed(1)} KB / {maxKB} KB
+   604→                </p>
+   605→              </div>
+   606→              <Progress value={usagePercent} className="h-2" />
+   607→              <p className="text-xs text-muted-foreground">
+   608→                {memories.length} memories · {collections.length} collections
+   609→              </p>
+   610→            </div>
+   611→
+   612→            <Separator />
+   613→
+   614→            {/* Action Buttons */}
+   615→            <div className="flex flex-col sm:flex-row gap-3">
+   616→              <Button
+   617→                variant="outline"
+   618→                className="gap-2 flex-1"
+   619→                onClick={handleExportPDF}
+   620→              >
+   621→                <Download className="size-4" />
+   622→                Export PDF
+   623→              </Button>
+   624→
+   625→              <AlertDialog>
+   626→                <AlertDialogTrigger asChild>
+   627→                  <Button
+   628→                    variant="destructive"
+   629→                    className="gap-2 flex-1"
+   630→                  >
+   631→                    <Trash2 className="size-4" />
+   632→                    Clear All Data
+   633→                  </Button>
+   634→                </AlertDialogTrigger>
+   635→                <AlertDialogContent>
+   636→                  <AlertDialogHeader>
+   637→                    <AlertDialogTitle className="flex items-center gap-2">
+   638→                      <Trash2 className="size-5 text-destructive" />
+   639→                      Clear All Data
+   640→                    </AlertDialogTitle>
+   641→                    <AlertDialogDescription>
+   642→                      This will permanently delete all your memories, collections, and chat
+   643→                      history. This action cannot be undone.
+   644→                    </AlertDialogDescription>
+   645→                  </AlertDialogHeader>
+   646→                  <AlertDialogFooter>
+   647→                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+   648→                    <AlertDialogAction
+   649→                      onClick={handleClearAllData}
+   650→                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+   651→                    >
+   652→                      Yes, clear everything
+   653→                    </AlertDialogAction>
+   654→                  </AlertDialogFooter>
+   655→                </AlertDialogContent>
+   656→              </AlertDialog>
+   657→            </div>
+   658→          </CardContent>
+   659→        </Card>
+   660→      </motion.div>
+   661→
+   662→      {/* ── 6. About Section ───────────────────────────────────────── */}
+   663→      <motion.div variants={itemVariants}>
+   664→        <Card className="border-0 shadow-sm bg-card">
+   665→          <CardHeader className="pb-3">
+   666→            <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+   667→              <Info className="size-4 text-[#6D597A] dark:text-[#B8A9C9]" />
+   668→              About
+   669→            </CardTitle>
+   670→          </CardHeader>
+   671→          <CardContent className="pt-0 space-y-4">
+   672→            <div className="flex items-center gap-4">
+   673→              <div className="flex items-center justify-center size-12 rounded-xl bg-gradient-to-br from-primary to-[#8B6F9A] text-primary-foreground shadow-md shrink-0">
+   674→                <Brain className="size-6" />
+   675→              </div>
+   676→              <div>
+   677→                <p className="text-sm font-semibold text-foreground">Aether v0.3.0</p>
+   678→                <p className="text-xs text-muted-foreground">Your personal memory companion</p>
+   679→              </div>
+   680→            </div>
+   681→
+   682→            <Separator />
+   683→
+   684→            <div className="flex flex-col gap-2">
+   685→              <div className="flex items-center justify-between">
+   686→                <span className="text-xs text-muted-foreground">Version</span>
+   687→                <span className="text-xs font-medium text-foreground">0.3.0</span>
+   688→              </div>
+   689→              <div className="flex items-center justify-between">
+   690→                <span className="text-xs text-muted-foreground">Build</span>
+   691→                <span className="text-xs font-medium text-foreground">2025.03</span>
+   692→              </div>
+   693→              <div className="flex items-center justify-between">
+   694→                <span className="text-xs text-muted-foreground">Cloud Sync</span>
+   695→                <span className="text-xs font-medium text-foreground">
+   696→                  {supabaseReady ? 'Connected' : isAuthenticated ? 'Setup Required' : 'Not Available'}
+   697→                </span>
+   698→              </div>
+   699→            </div>
+   700→
+   701→            <Separator />
+   702→
+   703→            <p className="text-xs text-center text-muted-foreground py-1">
+   704→              Made with ❤️ by the Aether team
+   705→            </p>
+   706→          </CardContent>
+   707→        </Card>
+   708→      </motion.div>
+   709→    </motion.div>
+   710→  )
+   711→}
+   712→
+   713→// ─── Small Settings icon (lucide-style inline) ──────────────────────
+   714→function SettingsIcon({ className }: { className?: string }) {
+   715→  return (
+   716→    <svg
+   717→      xmlns="http://www.w3.org/2000/svg"
+   718→      viewBox="0 0 24 24"
+   719→      fill="none"
+   720→      stroke="currentColor"
+   721→      strokeWidth="2"
+   722→      strokeLinecap="round"
+   723→      strokeLinejoin="round"
+   724→      className={className}
+   725→    >
+   726→      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+   727→      <circle cx="12" cy="12" r="3" />
+   728→    </svg>
+   729→  )
+   730→}
+   731→

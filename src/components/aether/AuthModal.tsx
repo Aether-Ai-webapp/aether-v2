@@ -2,11 +2,8 @@
 
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Mail, Lock, User, ArrowRight, Loader2, Brain } from 'lucide-react'
+import { X, ArrowRight, Loader2, Brain } from 'lucide-react'
 import { useAetherStore } from '@/lib/aether-store'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -61,16 +58,6 @@ export function AuthModal() {
     }
   }
 
-  const inputClasses = cn(
-    'pl-10 h-11 rounded-xl text-sm font-medium transition-all duration-200',
-    'bg-white/60 border border-black/[0.03] text-zinc-800 placeholder:text-zinc-300',
-    'focus:border-purple-300/60 focus:shadow-[0_0_30px_rgba(168,85,247,0.04)] focus-visible:ring-0'
-  )
-
-  const iconClasses = 'absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-zinc-300'
-
-  const labelClasses = 'text-[10px] font-medium uppercase tracking-widest text-zinc-400'
-
   return (
     <AnimatePresence>
       {showAuthModal && (
@@ -81,117 +68,98 @@ export function AuthModal() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm"
+            className="fixed inset-0 z-50 bg-black/10 backdrop-blur-[2px]"
             onClick={handleClose}
           />
 
-          {/* Modal */}
+          {/* Modal — pure white canvas, borderline-invisible inputs */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.97, y: 16 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.97, y: 16 }}
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 24 }}
             transition={{ duration: 0.25, ease: [0.22, 1, 0.3, 1] }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div
-              className="relative w-full max-w-sm rounded-2xl p-8 bg-white/80 backdrop-blur-2xl border border-black/[0.03] shadow-[0_8px_40px_rgb(0,0,0,0.04)]"
+              className="relative w-full max-w-sm rounded-2xl p-10 bg-white border border-black/[0.04] shadow-[0_8px_40px_rgb(0,0,0,0.03)]"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Close */}
               <button
                 onClick={handleClose}
-                className="absolute top-4 right-4 size-7 rounded-lg flex items-center justify-center transition-colors text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50"
+                className="absolute top-4 right-4 size-6 rounded-lg flex items-center justify-center transition-colors duration-200 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50"
               >
-                <X className="size-3.5" />
+                <X className="size-3" />
               </button>
 
               {/* Header */}
-              <div className="flex flex-col items-center mb-7">
-                <div className="size-12 rounded-xl bg-zinc-900 flex items-center justify-center mb-4">
-                  <Brain className="size-6 text-white" />
+              <div className="flex flex-col items-center mb-8">
+                <div className="size-10 rounded-xl bg-zinc-900 flex items-center justify-center mb-4">
+                  <Brain className="size-5 text-white" />
                 </div>
-                <h2 className="text-lg font-medium tracking-tight text-zinc-800">
+                <h2 className="text-sm font-medium tracking-tight text-zinc-800">
                   {mode === 'login' ? 'Welcome back' : 'Create account'}
                 </h2>
               </div>
 
-              {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-3.5">
+              {/* Form — border-b inputs, zero visual weight */}
+              <form onSubmit={handleSubmit} className="space-y-5">
                 {mode === 'signup' && (
-                  <div className="space-y-1.5">
-                    <Label className={labelClasses}>Name</Label>
-                    <div className="relative">
-                      <User className={iconClasses} />
-                      <Input
-                        placeholder="Your name"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className={inputClasses}
-                        disabled={isLoading}
-                      />
-                    </div>
-                  </div>
+                  <input
+                    type="text"
+                    placeholder="Name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    disabled={isLoading}
+                    className="w-full border-b border-zinc-200 focus:border-purple-500 bg-transparent rounded-none px-0 py-2.5 text-sm font-medium text-zinc-800 placeholder:text-zinc-300 focus:outline-none transition-colors duration-200"
+                  />
                 )}
 
-                <div className="space-y-1.5">
-                  <Label className={labelClasses}>Email</Label>
-                  <div className="relative">
-                    <Mail className={iconClasses} />
-                    <Input
-                      type="email"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className={inputClasses}
-                      disabled={isLoading}
-                      autoFocus
-                    />
-                  </div>
-                </div>
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading}
+                  autoFocus
+                  className="w-full border-b border-zinc-200 focus:border-purple-500 bg-transparent rounded-none px-0 py-2.5 text-sm font-medium text-zinc-800 placeholder:text-zinc-300 focus:outline-none transition-colors duration-200"
+                />
 
-                <div className="space-y-1.5">
-                  <Label className={labelClasses}>Password</Label>
-                  <div className="relative">
-                    <Lock className={iconClasses} />
-                    <Input
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className={inputClasses}
-                      disabled={isLoading}
-                    />
-                  </div>
-                </div>
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
+                  className="w-full border-b border-zinc-200 focus:border-purple-500 bg-transparent rounded-none px-0 py-2.5 text-sm font-medium text-zinc-800 placeholder:text-zinc-300 focus:outline-none transition-colors duration-200"
+                />
 
                 <button
                   type="submit"
                   disabled={isLoading}
                   className={cn(
-                    'w-full flex items-center justify-center gap-2 h-11 rounded-xl font-medium transition-colors duration-150 mt-1',
+                    'w-full flex items-center justify-center gap-2 h-10 rounded-xl font-medium transition-all duration-200 mt-2',
                     'bg-zinc-900 hover:bg-zinc-800 text-white',
                     'disabled:opacity-40 disabled:cursor-not-allowed'
                   )}
                 >
                   {isLoading ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" />
-                    </>
+                    <Loader2 className="size-4 animate-spin" />
                   ) : (
                     <>
                       {mode === 'login' ? 'Sign In' : 'Create Account'}
-                      <ArrowRight className="size-3.5" />
+                      <ArrowRight className="size-3" />
                     </>
                   )}
                 </button>
               </form>
 
               {/* Switch mode */}
-              <div className="mt-5 text-center">
+              <div className="mt-6 text-center">
                 <button
                   onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
-                  className="text-[11px] font-medium text-zinc-400 hover:text-zinc-600 transition-colors"
+                  className="text-[11px] font-medium text-zinc-400 hover:text-zinc-600 transition-colors duration-200"
                   disabled={isLoading}
                 >
                   {mode === 'login'

@@ -19,7 +19,7 @@ const suggestions = [
 
 // ─── Animation variants ──────────────────────────────────────────────
 const messageVariants = {
-  hidden: { opacity: 0, y: 8 },
+  hidden: { opacity: 0, y: 6 },
   visible: {
     opacity: 1,
     y: 0,
@@ -29,9 +29,9 @@ const messageVariants = {
 
 const dotBounce = {
   animate: {
-    y: [0, -4, 0],
+    y: [0, -3, 0],
     transition: {
-      duration: 0.5,
+      duration: 0.4,
       repeat: Infinity,
       ease: 'easeInOut' as const,
     },
@@ -47,7 +47,7 @@ function TypingIndicator() {
       animate="visible"
       className="flex items-end gap-2"
     >
-      <div className="size-6 rounded-full bg-zinc-100 text-purple-400 flex items-center justify-center shrink-0">
+      <div className="size-6 rounded-full bg-zinc-50 text-purple-400 flex items-center justify-center shrink-0">
         <Brain className="size-3" />
       </div>
       <div className="rounded-2xl rounded-bl-sm px-3.5 py-2.5 bg-white/70 border border-black/[0.03]">
@@ -55,9 +55,9 @@ function TypingIndicator() {
           {[0, 1, 2].map((i) => (
             <motion.span
               key={i}
-              className="size-1.5 rounded-full bg-purple-300/50"
+              className="size-1.5 rounded-full bg-purple-300/40"
               {...dotBounce}
-              transition={{ ...dotBounce.animate.transition, delay: i * 0.12 }}
+              transition={{ ...dotBounce.animate.transition, delay: i * 0.1 }}
             />
           ))}
         </div>
@@ -78,7 +78,7 @@ function ChatBubble({ message }: { message: ChatMessage }) {
       className={cn('flex items-end gap-2', isUser ? 'justify-end' : 'justify-start')}
     >
       {!isUser && (
-        <div className="size-6 rounded-full bg-zinc-100 text-purple-400 flex items-center justify-center shrink-0">
+        <div className="size-6 rounded-full bg-zinc-50 text-purple-400 flex items-center justify-center shrink-0">
           <Brain className="size-3" />
         </div>
       )}
@@ -112,7 +112,7 @@ function ChatBubble({ message }: { message: ChatMessage }) {
       </div>
 
       {isUser && (
-        <div className="size-6 rounded-full bg-zinc-200 text-zinc-500 flex items-center justify-center shrink-0">
+        <div className="size-6 rounded-full bg-zinc-100 text-zinc-400 flex items-center justify-center shrink-0">
           <MessageCircle className="size-3" />
         </div>
       )}
@@ -124,33 +124,33 @@ function ChatBubble({ message }: { message: ChatMessage }) {
 function EmptyState({ onSuggestionClick }: { onSuggestionClick: (text: string) => void }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="flex flex-col items-center justify-center h-full px-4 py-12 text-center"
+      transition={{ duration: 0.2, ease: 'easeOut' }}
+      className="flex flex-col items-center justify-center h-full px-4 py-16 text-center"
     >
-      <div className="size-14 rounded-2xl bg-zinc-100 flex items-center justify-center mb-5">
-        <Brain className="size-7 text-purple-400" />
+      <div className="size-12 rounded-2xl bg-zinc-50 flex items-center justify-center mb-5">
+        <Brain className="size-6 text-purple-400" />
       </div>
 
-      <h3 className="text-base font-medium tracking-tight text-zinc-800 mb-1.5">
+      <h3 className="text-sm font-medium tracking-tight text-zinc-800 mb-1">
         Ask Aether
       </h3>
 
-      <p className="text-sm text-zinc-400 max-w-[240px] mb-7">
+      <p className="text-xs text-zinc-400 max-w-[200px] mb-7">
         Search and explore your memories
       </p>
 
-      <div className="flex flex-wrap justify-center gap-2 max-w-[340px]">
+      <div className="flex flex-wrap justify-center gap-2 max-w-[320px]">
         {suggestions.map((suggestion, i) => (
           <motion.button
             key={suggestion}
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2, delay: 0.1 + i * 0.06 }}
+            transition={{ duration: 0.2, delay: 0.05 + i * 0.05 }}
             onClick={() => onSuggestionClick(suggestion)}
-            className="rounded-full border border-black/[0.04] bg-white/60 px-3.5 py-1.5 text-xs font-medium text-zinc-500 transition-colors hover:bg-white/80 hover:text-zinc-700 hover:border-black/[0.06]"
+            className="rounded-full border border-black/[0.04] bg-white/60 px-3 py-1.5 text-[11px] font-medium text-zinc-500 transition-colors duration-200 hover:bg-white/80 hover:text-zinc-700 hover:border-black/[0.06]"
           >
             {suggestion}
           </motion.button>
@@ -269,11 +269,11 @@ export function AskAether() {
       {/* ── Header ─────────────────────────────────────────────────── */}
       <div className="shrink-0 pb-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="size-8 rounded-lg bg-zinc-100 text-purple-400 flex items-center justify-center">
-              <Sparkles className="size-4" />
+          <div className="flex items-center gap-2">
+            <div className="size-7 rounded-lg bg-zinc-50 text-purple-400 flex items-center justify-center">
+              <Sparkles className="size-3.5" />
             </div>
-            <span className="text-base font-medium tracking-tight text-zinc-800">
+            <span className="text-sm font-medium tracking-tight text-zinc-800">
               Ask Aether
             </span>
           </div>
@@ -283,7 +283,7 @@ export function AskAether() {
               variant="ghost"
               size="sm"
               onClick={clearChat}
-              className="text-zinc-400 hover:text-zinc-600 text-xs"
+              className="text-zinc-400 hover:text-zinc-600 text-[11px]"
             >
               Clear
             </Button>
@@ -325,9 +325,9 @@ export function AskAether() {
         <form
           onSubmit={handleSubmit}
           className={cn(
-            'flex items-center gap-2 p-1 rounded-2xl transition-all duration-300',
-            'bg-white/60 backdrop-blur-xl border border-black/[0.03] shadow-[0_8px_30px_rgb(0,0,0,0.01)]',
-            'focus-within:border-purple-300/60 focus-within:shadow-[0_0_50px_rgba(168,85,247,0.05)]'
+            'flex items-center gap-2 p-1.5 rounded-2xl transition-all duration-200',
+            'bg-white/80 border border-black/[0.04] shadow-sm backdrop-blur-xl',
+            'focus-within:border-purple-300/60 focus-within:shadow-[0_0_30px_rgba(168,85,247,0.03)]'
           )}
         >
           <div className="relative flex-1">
@@ -337,7 +337,7 @@ export function AskAether() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask about your memories..."
               disabled={isLoading}
-              className="rounded-xl h-10 pl-3 pr-3 text-sm border-0 shadow-none bg-transparent text-zinc-800 placeholder:text-zinc-300 focus-visible:ring-0 font-medium"
+              className="rounded-xl h-9 pl-3 pr-3 text-sm border-0 shadow-none bg-transparent text-zinc-800 placeholder:text-zinc-300 focus-visible:ring-0 font-medium"
             />
           </div>
           <Button
@@ -345,10 +345,10 @@ export function AskAether() {
             disabled={!input.trim() || isLoading}
             size="icon"
             className={cn(
-              'size-9 rounded-xl transition-colors',
+              'size-8 rounded-xl transition-all duration-200',
               input.trim() && !isLoading
                 ? 'bg-zinc-900 hover:bg-zinc-800 text-white'
-                : 'bg-zinc-100 text-zinc-300',
+                : 'bg-zinc-50 text-zinc-300',
               'disabled:opacity-100'
             )}
           >

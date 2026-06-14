@@ -9,7 +9,6 @@ import {
   Send,
   X,
   Trash2,
-  Crown,
   Link2,
   FileText,
   CheckCircle2,
@@ -45,11 +44,10 @@ function mapToMemoryType(detected: 'link' | 'task' | 'note'): MemoryType {
   return 'text'
 }
 
-// ─── Category Config ─────────────────────────────────────────────────
-const categoryConfig = {
-  link: { label: 'Links', icon: Link2, color: 'text-zinc-400' },
-  task: { label: 'Tasks', icon: CheckCircle2, color: 'text-zinc-400' },
-  note: { label: 'Notes', icon: FileText, color: 'text-zinc-400' },
+const typeIconMap: Record<string, React.ElementType> = {
+  link: Link2,
+  task: CheckCircle2,
+  note: FileText,
 }
 
 // ─── Main Dashboard Component ────────────────────────────────────────
@@ -66,11 +64,7 @@ export function Dashboard() {
 
   const [captureText, setCaptureText] = useState('')
   const [isSaving, setIsSaving] = useState(false)
-  const [isJustSaved, setIsJustSaved] = useState(false)
-
-  // ── Feedback state (minimal)
-  const [captureFeedback, setCaptureFeedback] = useState<'link' | 'task' | 'note' | null>(null)
-  const [lastSavedId, setLastSavedId] = useState<string | null>(null)
+  const [isFadingUp, setIsFadingUp] = useState(false)
 
   // ── Voice Recording state
   const [isRecording, setIsRecording] = useState(false)
@@ -82,9 +76,6 @@ export function Dashboard() {
   const [pendingImage, setPendingImage] = useState<File | null>(null)
   const [pendingImagePreview, setPendingImagePreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const justSavedTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
-  const feedbackTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   // Hydration guard
   const [mounted, setMounted] = useState(false)
@@ -230,10 +221,13 @@ export function Dashboard() {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }, [])
 
-  // ── Capture handler ────────────────────────────────────────────────
+  // ── Capture handler with fade-up animation ─────────────────────────
   const handleCapture = useCallback(async () => {
     const text = captureText.trim()
     if ((!text && !pendingImage) || isSaving) return
+
+    // ── Trigger fade-up animation on the input
+    setIsFadingUp(true)
 
     // ── AUTH GATE
     if (!isAuthenticated) {
@@ -242,13 +236,6 @@ export function Dashboard() {
       requireAuth(async () => {
         const detectedType = detectContentType(pendingText)
         const memoryType = pendingImage ? 'image' : mapToMemoryType(detectedType)
-
-        setCaptureFeedback(detectedType)
-        if (feedbackTimer.current) clearTimeout(feedbackTimer.current)
-        feedbackTimer.current = setTimeout(() => setCaptureFeedback(null), 1800)
-        setIsJustSaved(true)
-        if (justSavedTimer.current) clearTimeout(justSavedTimer.current)
-        justSavedTimer.current = setTimeout(() => setIsJustSaved(false), 500)
 
         let imageUrl: string | null = null
         if (pendingImage) {
@@ -266,8 +253,6 @@ export function Dashboard() {
             imageUrl,
           })
           if (savedMemory) {
-            setLastSavedId(savedMemory.id)
-            setTimeout(() => setLastSavedId(null), 1200)
             fetchMemories()
           } else {
             toast.error('Failed to save')
@@ -276,6 +261,7 @@ export function Dashboard() {
           toast.error('Something went wrong')
         } finally {
           setIsSaving(false)
+          setIsFadingUp(false)
         }
       })
       return
@@ -284,14 +270,11 @@ export function Dashboard() {
     const detectedType = detectContentType(text)
     const memoryType = pendingImage ? 'image' : mapToMemoryType(detectedType)
 
-    setCaptureText('')
-    setCaptureFeedback(detectedType)
-    if (feedbackTimer.current) clearTimeout(feedbackTimer.current)
-    feedbackTimer.current = setTimeout(() => setCaptureFeedback(null), 1800)
-
-    setIsJustSaved(true)
-    if (justSavedTimer.current) clearTimeout(justSavedTimer.current)
-    justSavedTimer.current = setTimeout(() => setIsJustSaved(false), 500)
+    // Clear input immediately for fade-up feel
+    setTimeout(() => {
+      setCaptureText('')
+      setIsFadingUp(false)
+    }, 250)
 
     if (memories.length >= FREE_MEMORY_LIMIT) {
       setTimeout(() => setShowPaywall(true), 800)
@@ -315,8 +298,6 @@ export function Dashboard() {
       })
 
       if (savedMemory) {
-        setLastSavedId(savedMemory.id)
-        setTimeout(() => setLastSavedId(null), 1200)
         fetchMemories()
       } else {
         toast.error('Failed to save')
@@ -351,15 +332,14 @@ export function Dashboard() {
   const displayMemories = useMemo(() => {
     return [...memories]
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 6)
   }, [memories])
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="w-full max-w-full overflow-x-hidden min-h-screen relative flex flex-col items-center pt-8 md:pt-16 pb-24 px-4 md:px-8"
+      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      className="w-full max-w-full overflow-x-hidden flex flex-col items-center px-4 md:px-8"
     >
       {/* Hidden file input */}
       <input
@@ -370,31 +350,31 @@ export function Dashboard() {
         className="hidden"
       />
 
-      {/* ── Greeting ──────────────────────────────────────────────────── */}
-      <section className="w-full max-w-xl mx-auto mb-10">
+      {/* ── Greeting — single line, massive whitespace ─────────────── */}
+      <section className="w-full max-w-xl mx-auto mt-8 md:mt-16 mb-10">
         <h1 className="text-2xl md:text-3xl font-medium tracking-tight text-zinc-800">
           {mounted ? getGreeting() : ''}
         </h1>
       </section>
 
-      {/* ── Capture Bar ───────────────────────────────────────────────── */}
-      <section className="w-full max-w-xl mx-auto mb-14">
-        {/* Image preview */}
+      {/* ── Floating Capture Bar ───────────────────────────────────── */}
+      <section className="w-full max-w-xl mx-auto mb-12">
+        {/* Image preview pill */}
         <AnimatePresence>
           {pendingImagePreview && (
             <motion.div
-              initial={{ opacity: 0, y: 6 }}
+              initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
+              exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.15 }}
-              className="mb-2.5 inline-flex items-center gap-3 px-3 py-2 rounded-xl bg-white/60 backdrop-blur-xl border border-black/[0.03] max-w-full"
+              className="mb-2 inline-flex items-center gap-3 px-3 py-2 rounded-xl bg-white/60 backdrop-blur-xl border border-black/[0.04] max-w-full"
             >
               <img
                 src={pendingImagePreview}
                 alt="Preview"
                 className="size-10 rounded-lg object-cover"
               />
-              <span className="text-xs font-medium text-zinc-500 truncate max-w-[120px]">
+              <span className="text-xs font-medium text-zinc-400 truncate max-w-[120px]">
                 {pendingImage?.name.slice(0, 20) || 'Image'}
               </span>
               <button
@@ -407,44 +387,25 @@ export function Dashboard() {
           )}
         </AnimatePresence>
 
+        {/* The glass capsule */}
         <div
           className={cn(
-            'relative rounded-2xl p-1 transition-all duration-300',
-            isJustSaved
-              ? 'bg-white/70 backdrop-blur-xl border border-purple-200/40 shadow-[0_0_40px_rgba(168,85,247,0.04)]'
-              : 'bg-white/60 backdrop-blur-xl border border-black/[0.03] shadow-[0_8px_30px_rgb(0,0,0,0.01)] focus-within:border-purple-300/60 focus-within:shadow-[0_0_50px_rgba(168,85,247,0.05)]'
+            'bg-white/80 border border-black/[0.04] shadow-sm backdrop-blur-xl rounded-2xl p-2 transition-all duration-200 ease-in-out',
+            'focus-within:border-purple-300/60 focus-within:shadow-[0_0_40px_rgba(168,85,247,0.04)]'
           )}
         >
-          <div className="flex items-center gap-2 px-3 py-2.5 min-w-0">
-            <input
-              value={captureText}
-              onChange={(e) => setCaptureText(e.target.value)}
-              onKeyDown={handleCaptureKeyDown}
-              placeholder="What's on your mind?"
-              disabled={isSaving}
-              className="w-full min-w-0 bg-transparent text-base font-medium text-zinc-800 placeholder:text-zinc-300 focus:outline-none px-1 tracking-tight"
-            />
-
-            {/* Image upload */}
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center justify-center size-8 rounded-lg transition-colors shrink-0 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100/60"
-              aria-label="Attach image"
-            >
-              <ImageIcon className="size-4" />
-            </button>
-
-            {/* Mic */}
+          <div className="flex items-center gap-1.5 min-w-0">
+            {/* Mic button */}
             <button
               onClick={isRecording ? stopRecording : startRecording}
               disabled={isTranscribing}
               className={cn(
-                'flex items-center justify-center size-8 rounded-lg transition-colors shrink-0',
+                'flex items-center justify-center size-9 rounded-xl transition-all duration-200 shrink-0',
                 isRecording
-                  ? 'bg-red-50 text-red-400'
+                  ? 'bg-red-50 text-red-400 scale-105'
                   : isTranscribing
                     ? 'text-zinc-300'
-                    : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100/60'
+                    : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50'
               )}
               aria-label={isRecording ? 'Stop recording' : 'Voice recording'}
             >
@@ -457,15 +418,39 @@ export function Dashboard() {
               )}
             </button>
 
+            {/* Input */}
+            <div className="relative flex-1 min-w-0">
+              <input
+                value={captureText}
+                onChange={(e) => setCaptureText(e.target.value)}
+                onKeyDown={handleCaptureKeyDown}
+                placeholder="What's on your mind?"
+                disabled={isSaving}
+                className={cn(
+                  'w-full min-w-0 bg-transparent text-sm font-medium text-zinc-800 placeholder:text-zinc-300 focus:outline-none px-1 tracking-tight transition-all duration-250',
+                  isFadingUp && 'animate-capture-fade-up'
+                )}
+              />
+            </div>
+
+            {/* Image upload */}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center justify-center size-9 rounded-xl transition-all duration-200 shrink-0 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50"
+              aria-label="Attach image"
+            >
+              <ImageIcon className="size-4" />
+            </button>
+
             {/* Send */}
             <button
               onClick={handleCapture}
               disabled={(!captureText.trim() && !pendingImage) || isSaving}
               className={cn(
-                'flex items-center justify-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors duration-150 shrink-0',
+                'flex items-center justify-center size-9 rounded-xl transition-all duration-200 shrink-0',
                 (captureText.trim() || pendingImage) && !isSaving
                   ? 'bg-zinc-900 hover:bg-zinc-800 text-white'
-                  : 'bg-zinc-100 text-zinc-300'
+                  : 'bg-zinc-50 text-zinc-300'
               )}
             >
               {isSaving ? (
@@ -476,36 +461,19 @@ export function Dashboard() {
             </button>
           </div>
         </div>
-
-        {/* Capture feedback — minimal */}
-        <AnimatePresence>
-          {captureFeedback && (
-            <motion.div
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.2 }}
-              className="flex justify-center mt-3"
-            >
-              <span className="text-[11px] font-medium text-zinc-400">
-                Saved to {categoryConfig[captureFeedback].label}
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </section>
 
-      {/* ── Memory Grid ───────────────────────────────────────────────── */}
-      <section className="w-full max-w-3xl mx-auto">
+      {/* ── Memory Feed — Borderless Rows ──────────────────────────── */}
+      <section className="w-full max-w-xl mx-auto pb-24 md:pb-8">
         {!hasFetched ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 auto-rows-[160px]">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="rounded-2xl p-5 bg-white/60 border border-black/[0.03] animate-pulse">
-                <div className="flex items-start gap-3">
-                  <div className="size-8 rounded-lg bg-zinc-100 shrink-0" />
-                  <div className="flex-1 space-y-2.5">
+          <div className="space-y-1">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="px-3 py-4 animate-pulse">
+                <div className="flex items-center gap-3">
+                  <div className="size-5 rounded-md bg-zinc-100 shrink-0" />
+                  <div className="flex-1 space-y-2">
                     <div className="h-3 rounded-md w-3/4 bg-zinc-100" />
-                    <div className="h-2.5 rounded-md w-1/2 bg-zinc-50" />
+                    <div className="h-2 rounded-md w-1/3 bg-zinc-50" />
                   </div>
                 </div>
               </div>
@@ -515,33 +483,26 @@ export function Dashboard() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.4 }}
-            className="flex flex-col items-center justify-center py-20"
+            transition={{ duration: 0.3 }}
+            className="flex flex-col items-center justify-center py-24"
           >
-            <Brain className="size-12 text-zinc-200 mb-4" />
-            <p className="text-sm text-zinc-400">No memories yet</p>
+            <Brain className="size-10 text-zinc-200 mb-3" />
           </motion.div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 auto-rows-[minmax(160px,auto)]">
-            {displayMemories.map((memory, index) => {
-              const detectedType = detectContentType(memory.content)
-              const isWide = index === 0 || detectedType === 'link' || !!memory.imageUrl
-              return (
-                <MemoryCard
-                  key={memory.id}
-                  memory={memory}
-                  isNew={memory.id === lastSavedId}
-                  isWide={isWide}
-                  index={index}
-                  onClick={() => setSelectedMemory(memory)}
-                />
-              )
-            })}
+          <div className="space-y-0">
+            {displayMemories.map((memory, index) => (
+              <MemoryRow
+                key={memory.id}
+                memory={memory}
+                index={index}
+                onClick={() => setSelectedMemory(memory)}
+              />
+            ))}
           </div>
         )}
       </section>
 
-      {/* ── Memory Drawer ─────────────────────────────────────────────── */}
+      {/* ── Memory Drawer ──────────────────────────────────────────── */}
       <AnimatePresence>
         {selectedMemory && (
           <MemoryDrawer
@@ -558,86 +519,50 @@ export function Dashboard() {
   )
 }
 
-// ─── Memory Card ────────────────────────────────────────────────────
-function MemoryCard({ memory, isNew, isWide, index, onClick }: {
+// ─── Memory Row — Borderless, minimal ────────────────────────────────
+function MemoryRow({ memory, index, onClick }: {
   memory: Memory
-  isNew: boolean
-  isWide: boolean
   index: number
   onClick: () => void
 }) {
   const displayTitle = memory.title || memory.content.split('\n')[0].slice(0, 80) || 'Untitled'
   const relativeTime = formatDistanceToNow(new Date(memory.createdAt), { addSuffix: true })
   const detectedType = detectContentType(memory.content)
-  const config = categoryConfig[detectedType]
-  const Icon = config.icon
+  const Icon = typeIconMap[detectedType] || FileText
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 6 }}
+      initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, ease: 'easeOut', delay: index * 0.04 }}
-      whileHover={{ y: -2, transition: { duration: 0.15 } }}
-      whileTap={{ scale: 0.99 }}
-      className={cn('group relative', isWide && 'md:col-span-2')}
+      transition={{ duration: 0.2, ease: 'easeOut', delay: Math.min(index * 0.03, 0.15) }}
     >
-      <div
+      <button
         onClick={onClick}
-        className={cn(
-          'relative overflow-hidden rounded-2xl p-5 transition-all duration-150 cursor-pointer h-full',
-          isNew
-            ? 'bg-white/80 backdrop-blur-xl border border-purple-200/40 shadow-[0_0_30px_rgba(168,85,247,0.04)]'
-            : 'bg-white/60 backdrop-blur-xl border border-black/[0.03] shadow-[0_8px_30px_rgb(0,0,0,0.01)] hover:bg-white/70 hover:border-black/[0.06]'
-        )}
+        className="w-full text-left px-3 py-4 rounded-xl transition-all duration-200 ease-in-out hover:bg-zinc-50/80 group flex items-start gap-3"
       >
-        {/* Image */}
-        {memory.imageUrl && (
-          <div className="mb-3">
-            <img
-              src={memory.imageUrl}
-              alt={displayTitle}
-              className="w-full h-28 object-cover rounded-xl"
-            />
-          </div>
-        )}
+        {/* Type icon */}
+        <div className="size-5 rounded-md flex items-center justify-center shrink-0 mt-0.5 bg-zinc-50 group-hover:bg-zinc-100 transition-colors duration-200">
+          <Icon className="size-2.5 text-zinc-400" />
+        </div>
 
-        {/* Type badge + time */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="size-7 rounded-lg flex items-center justify-center bg-zinc-50">
-            <Icon className={cn('size-3.5', config.color)} />
-          </div>
-          <span className="text-[10px] text-zinc-300 font-medium">
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-zinc-700 line-clamp-2 leading-relaxed group-hover:text-zinc-900 transition-colors duration-200">
+            {displayTitle}
+          </p>
+          <span className="text-[11px] text-zinc-300 mt-1 block">
             {relativeTime}
           </span>
         </div>
 
-        {/* Content */}
-        <p className={cn(
-          'text-sm leading-relaxed font-medium text-zinc-600',
-          isWide ? 'line-clamp-3' : 'line-clamp-2'
-        )}>
-          {displayTitle}
-        </p>
-
-        {/* Tags */}
-        {memory.tags.length > 0 && (
-          <div className="mt-2.5 flex flex-wrap gap-1">
-            {memory.tags.slice(0, isWide ? 4 : 3).map((tag) => (
-              <span key={tag} className="inline-block text-[10px] px-2 py-0.5 rounded-md bg-purple-50/80 text-purple-500 font-medium">
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Hover arrow */}
-        <ChevronRight className="size-3 absolute bottom-5 right-5 opacity-0 group-hover:opacity-100 transition-opacity text-zinc-300" />
-      </div>
+        {/* Arrow */}
+        <ChevronRight className="size-3.5 text-zinc-200 group-hover:text-zinc-400 mt-1.5 shrink-0 transition-colors duration-200" />
+      </button>
     </motion.div>
   )
 }
 
-// ─── Memory Drawer ──────────────────────────────────────────────────
+// ─── Memory Drawer — Slide-out inspection panel ──────────────────────
 function MemoryDrawer({
   memory,
   onClose,
@@ -657,7 +582,7 @@ function MemoryDrawer({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.15 }}
-        className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50"
+        className="fixed inset-0 bg-black/10 backdrop-blur-[2px] z-50"
         onClick={onClose}
       />
 
@@ -666,30 +591,30 @@ function MemoryDrawer({
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
-        transition={{ type: 'spring', stiffness: 260, damping: 28 }}
-        className="fixed top-0 right-0 h-full z-50 w-full max-w-md overflow-y-auto bg-white/90 backdrop-blur-2xl border-l border-black/[0.03]"
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        className="fixed top-0 right-0 h-full z-50 w-full max-w-md overflow-y-auto bg-white/95 backdrop-blur-2xl border-l border-black/[0.04]"
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 bg-white/90 backdrop-blur-xl border-b border-black/[0.03]">
-          <h2 className="text-base font-medium tracking-tight text-zinc-800 pr-4 truncate">
+        <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 bg-white/95 backdrop-blur-xl border-b border-black/[0.04]">
+          <h2 className="text-sm font-medium tracking-tight text-zinc-800 pr-4 truncate">
             {memory.title || 'Untitled'}
           </h2>
           <button
             onClick={onClose}
-            className="size-8 rounded-lg flex items-center justify-center transition-colors shrink-0 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50"
+            className="size-7 rounded-lg flex items-center justify-center transition-colors duration-200 shrink-0 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50"
           >
-            <X className="size-4" />
+            <X className="size-3.5" />
           </button>
         </div>
 
         <div className="px-6 py-6 space-y-6">
           {/* AI Recap */}
           {memory.recap && (
-            <div className="rounded-xl p-4 bg-purple-50/40 border border-purple-100/30">
-              <p className="text-[10px] uppercase tracking-[0.12em] mb-2 text-purple-400 font-medium flex items-center gap-1.5">
-                <Sparkles className="w-3 h-3" />
-                Recap
-              </p>
+            <div className="rounded-xl p-4 bg-purple-50/30 border border-purple-100/20">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Sparkles className="w-3 h-3 text-purple-400" />
+                <span className="text-[10px] uppercase tracking-[0.12em] text-purple-400 font-medium">Recap</span>
+              </div>
               <p className="text-sm leading-relaxed text-zinc-600 font-medium">
                 {memory.recap}
               </p>
@@ -707,12 +632,23 @@ function MemoryDrawer({
             </div>
           )}
 
-          {/* Tags */}
+          {/* Tags — only visible in drawer */}
           {memory.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {memory.tags.map((tag) => (
-                <span key={tag} className="text-[11px] px-2.5 py-1 rounded-lg bg-purple-50/60 text-purple-500 font-medium">
+                <span key={tag} className="text-[11px] px-2.5 py-1 rounded-lg bg-purple-50/40 text-purple-500 font-medium">
                   {tag}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Collections */}
+          {memory.collections.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {memory.collections.map((col) => (
+                <span key={col.id} className="text-[11px] px-2.5 py-1 rounded-lg bg-zinc-50 text-zinc-500 font-medium">
+                  {col.name}
                 </span>
               ))}
             </div>
@@ -745,13 +681,13 @@ function MemoryDrawer({
         </div>
 
         {/* Bottom Actions */}
-        <div className="sticky bottom-0 px-6 py-4 flex items-center bg-white/90 backdrop-blur-xl border-t border-black/[0.03]">
+        <div className="sticky bottom-0 px-6 py-4 flex items-center bg-white/95 backdrop-blur-xl border-t border-black/[0.04]">
           <button
             onClick={onDelete}
             disabled={isDeleting}
             className={cn(
-              'flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg transition-colors',
-              'text-red-400 hover:text-red-500 hover:bg-red-50/60',
+              'flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg transition-colors duration-200',
+              'text-red-400 hover:text-red-500 hover:bg-red-50/40',
               isDeleting && 'opacity-50 cursor-not-allowed'
             )}
           >
