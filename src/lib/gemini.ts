@@ -19,6 +19,7 @@ export async function chatWithGemini(systemPrompt: string, userMessage: string):
   const ai = getGenAI()
   if (!ai) throw new Error('Gemini API key not configured')
 
+  // Use gemini-2.0-flash for fast responses (successor to 1.5 Flash)
   const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' })
 
   const result = await model.generateContent({
@@ -64,4 +65,69 @@ export async function generateSummary(content: string): Promise<string> {
   } catch {
     return ''
   }
+}
+
+/**
+ * Generate a 2-sentence AI recap of a memory for the Drawer preview.
+ * Tries Groq first (fastest), then falls back to Gemini.
+ */
+export async function generateRecap(content: string, title?: string): Promise<string> {
+  const promptText = title?.trim()
+    ? `Title: "${title}"\n\nContent: ${content.slice(0, 1500)}`
+    : content.slice(0, 1500)
+
+  // ── Attempt 1: Groq (fastest — <200ms) ────────────────────────────
+  const groqKey = process.env.NEXT_PUBLIC_GROQ_API_KEY || process.env.GROQ_API_KEY
+  if (groqKey && groqKey !== 'placeholder_groq_key') {
+    try {
+      const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${groqKey}`,
+        },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a brilliant note-summarizer. Given a user\'s note or thought, write exactly 2 concise, satisfying sentences that capture the essence. Be specific and informative. Output ONLY the 2 sentences, nothing else.',
+            },
+            {
+              role: 'user',
+              content: `Summarize this thought in exactly 2 sentences:\n\n${promptText}`,
+            },
+          ],
+          temperature: 0.3,
+          max_tokens: 150,
+        }),
+      })
+
+      if (groqRes.ok) {
+        const data = await groqRes.json()
+        const recap = data.choices?.[0]?.message?.content?.trim()
+        if (recap) return recap
+      }
+    } catch {
+      // Fall through to Gemini
+    }
+  }
+
+  // ── Attempt 2: Gemini Flash ───────────────────────────────────────
+  const ai = getGenAI()
+  if (ai) {
+    try {
+      const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' })
+      const result = await model.generateContent([
+        'You are a brilliant note-summarizer. Write exactly 2 concise, satisfying sentences that capture the essence of this thought. Be specific and informative. Output ONLY the 2 sentences.',
+        `Thought:\n${promptText}`,
+      ])
+      const recap = result.response.text().trim()
+      if (recap) return recap
+    } catch {
+      // Fall through
+    }
+  }
+
+  return ''
 }

@@ -16,9 +16,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Audio file too large (max 25MB)' }, { status: 400 })
     }
 
-    const GROQ_API_KEY = process.env.GROQ_API_KEY
+    // Check both env var names for consistency with /api/ai/chat
+    const GROQ_API_KEY = process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY
 
-    if (!GROQ_API_KEY) {
+    if (!GROQ_API_KEY || GROQ_API_KEY === 'placeholder_groq_key') {
       // Fallback: try z-ai-web-dev-sdk
       try {
         const ZAI = (await import('z-ai-web-dev-sdk')).default
@@ -37,6 +38,7 @@ export async function POST(req: NextRequest) {
     groqFormData.append('model', 'whisper-large-v3-turbo')
     groqFormData.append('response_format', 'json')
     groqFormData.append('language', 'en')
+    groqFormData.append('temperature', '0')
 
     const groqRes = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
       method: 'POST',

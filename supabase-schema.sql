@@ -210,6 +210,8 @@ CREATE INDEX IF NOT EXISTS idx_memories_embedding ON memories
 -- ============================================================
 -- Finds the top-N most semantically similar memories for a given user.
 -- Uses the cosine-distance operator `<=>` provided by pgvector.
+-- Returns rich context: content, summary, recap, tags, type, title,
+-- image_url, and created_at for synthesis-grade RAG injection.
 CREATE OR REPLACE FUNCTION match_memories(
   query_embedding public.vector(768),
   match_user_id UUID,
@@ -218,9 +220,12 @@ CREATE OR REPLACE FUNCTION match_memories(
 RETURNS TABLE (
   id UUID,
   content TEXT,
+  summary TEXT,
+  recap TEXT,
   tags TEXT,
   type TEXT,
   title TEXT,
+  image_url TEXT,
   created_at TIMESTAMPTZ,
   similarity FLOAT
 )
@@ -232,9 +237,12 @@ BEGIN
   SELECT
     m.id,
     m.content,
+    m.summary,
+    m.recap,
     m.tags,
     m.type,
     m.title,
+    m.image_url,
     m.created_at,
     1 - (m.embedding <=> query_embedding) AS similarity
   FROM memories m
