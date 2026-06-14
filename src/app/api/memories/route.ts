@@ -55,6 +55,8 @@ export async function GET() {
             sourceUrl: m.source_url,
             fileUrl: m.file_url,
             imagePreview: m.image_preview,
+            imageUrl: m.image_url,
+            recap: m.recap,
             isFavorite: m.is_favorite,
             createdAt: m.created_at,
             updatedAt: m.updated_at,
@@ -98,6 +100,8 @@ export async function GET() {
       sourceUrl: m.sourceUrl,
       fileUrl: m.fileUrl,
       imagePreview: m.imagePreview,
+      imageUrl: m.imageUrl,
+      recap: m.recap,
       isFavorite: m.isFavorite,
       createdAt: m.createdAt.toISOString(),
       updatedAt: m.updatedAt.toISOString(),
@@ -121,7 +125,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { type, title, content, sourceUrl, tags, collectionIds } = body
+    const { type, title, content, sourceUrl, imageUrl, tags, collectionIds } = body
 
     if (!content?.trim() && !sourceUrl?.trim()) {
       return NextResponse.json({ error: 'Content or URL is required' }, { status: 400 })
@@ -151,6 +155,7 @@ export async function POST(req: NextRequest) {
             title: title || '',
             content: content || '',
             source_url: sourceUrl || null,
+            image_url: imageUrl || null,
             tags: finalTags ? (Array.isArray(finalTags) ? finalTags.join(',') : finalTags) : '',
           })
           .select('*, memory_collections(collection_id, collections(id, name, color, icon))')
@@ -180,6 +185,8 @@ export async function POST(req: NextRequest) {
               sourceUrl: m.source_url,
               fileUrl: m.file_url,
               imagePreview: m.image_preview,
+              imageUrl: m.image_url,
+              recap: m.recap,
               isFavorite: m.is_favorite,
               createdAt: m.created_at,
               updatedAt: m.updated_at,
@@ -202,6 +209,7 @@ export async function POST(req: NextRequest) {
         content: content || '',
         summary: null,
         sourceUrl: sourceUrl || null,
+        imageUrl: imageUrl || null,
         tags: finalTags ? (Array.isArray(finalTags) ? finalTags.join(',') : finalTags) : '',
         collections: collectionIds?.length
           ? {
@@ -233,6 +241,8 @@ export async function POST(req: NextRequest) {
         sourceUrl: memory.sourceUrl,
         fileUrl: memory.fileUrl,
         imagePreview: memory.imagePreview,
+        imageUrl: memory.imageUrl,
+        recap: memory.recap,
         isFavorite: memory.isFavorite,
         createdAt: memory.createdAt.toISOString(),
         updatedAt: memory.updatedAt.toISOString(),

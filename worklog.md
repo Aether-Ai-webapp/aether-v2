@@ -175,3 +175,30 @@ Stage Summary:
 - Butter Smooth Animations: spring-based card entrances with blur fade, staggered delays, font-black metrics
 - All logic, state, hooks, Supabase calls, API integrations completely untouched
 - Key files modified: Dashboard.tsx, AppShell.tsx, AuthModal.tsx, globals.css
+
+---
+Task ID: 5
+Agent: Main
+Task: Phase 2 — Voice Transcription, Image Upload, Memory Drawer
+
+Work Log:
+- Updated Prisma schema: Added imageUrl and recap columns to Memory model
+- Ran db:push to sync schema with SQLite
+- Updated supabase-schema.sql: Added image_url and recap columns
+- Created /api/transcribe/route.ts: Groq Whisper voice transcription
+- Created /api/ai/recap/route.ts: AI 2-sentence recap generation
+- Updated aether-store.ts: Memory type + Supabase mapper + saveMemory + backgroundAutoRecap
+- Updated /api/memories routes: imageUrl + recap in GET/POST/PATCH responses
+- Dashboard.tsx complete rewrite with Phase 2 features:
+  1. Voice Recording: Mic toggle → MediaRecorder → Groq Whisper → text auto-populate
+  2. Image Upload: File picker → glass preview → Supabase Storage → imageUrl in DB
+  3. Memory Drawer: Right-sliding panel with AI Recap, original, image, tags, delete
+- Browser verification: All features confirmed working, clean lint, no console errors
+
+Stage Summary:
+- Voice transcription pipeline complete: Browser MediaRecorder → Groq Whisper → text auto-populate
+- Image upload pipeline complete: File picker → preview → Supabase Storage → imageUrl in DB
+- Memory Drawer complete: Right-sliding panel with AI Recap, original, image, delete
+- AI Recap auto-generation: backgroundAutoRecap runs on every memory save
+- Key files created: /api/transcribe/route.ts, /api/ai/recap/route.ts
+- Key files modified: Dashboard.tsx, aether-store.ts, prisma/schema.prisma, supabase-schema.sql, /api/memories routes

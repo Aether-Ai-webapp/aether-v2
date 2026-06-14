@@ -13,6 +13,8 @@ export interface Memory {
   sourceUrl: string | null
   fileUrl: string | null
   imagePreview: string | null
+  imageUrl: string | null  // Supabase Storage public URL for uploaded images
+  recap: string | null     // AI-generated 2-sentence recap
   isFavorite: boolean
   createdAt: string
   updatedAt: string
@@ -56,6 +58,8 @@ interface SupabaseMemoryRow {
   source_url: string | null
   file_url: string | null
   image_preview: string | null
+  image_url: string | null
+  recap: string | null
   is_favorite: boolean
   created_at: string
   updated_at: string
@@ -83,6 +87,8 @@ function mapSupabaseMemory(row: SupabaseMemoryRow): Memory {
     sourceUrl: row.source_url,
     fileUrl: row.file_url,
     imagePreview: row.image_preview,
+    imageUrl: row.image_url,
+    recap: row.recap,
     isFavorite: row.is_favorite || false,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -235,7 +241,7 @@ interface AetherState {
   fetchCollections: () => Promise<void>
 
   // Supabase-aware save
-  saveMemory: (data: { type: MemoryType; title: string; content: string; sourceUrl?: string | null; tags?: string[]; collectionIds?: string[] }) => Promise<Memory | null>
+  saveMemory: (data: { type: MemoryType; title: string; content: string; sourceUrl?: string | null; imageUrl?: string | null; tags?: string[]; collectionIds?: string[] }) => Promise<Memory | null>
   saveCollection: (data: { name: string; color?: string; icon?: string }) => Promise<Collection | null>
 
   // Delete memory from DB
@@ -246,6 +252,9 @@ interface AetherState {
 
   // Background AI summary generation (non-blocking)
   backgroundAutoSummary: (memoryId: string, content: string) => Promise<void>
+
+  // Background AI recap generation (non-blocking)
+  backgroundAutoRecap: (memoryId: string, content: string, title: string) => Promise<void>
 
   // Background link content reading (non-blocking)
   backgroundReadLink: (memoryId: string, url: string) => Promise<void>
@@ -817,6 +826,56 @@ export const useAetherStore = create<AetherState>((set, get) => ({
     }
   },
 
+  // ── Background AI recap generation (non-blocking) ──────────────────
+  backgroundAutoRecap: async (memoryId: string, content: string, title: string) => {
+    try {
+      const res = await fetch('/api/ai/recap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: content.slice(0, 1500), title }),
+      })
+
+      if (!res.ok) return
+
+      const { recap } = await res.json()
+      if (!recap?.trim()) return
+
+      const state = get()
+
+      // Update in Supabase if authenticated + ready
+      if (state.isAuthenticated && state.supabaseReady) {
+        try {
+          const supabase = await getSupabaseBrowser()
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session) {
+            await supabase
+              .from('memories')
+              .update({ recap })
+              .eq('id', memoryId)
+          }
+        } catch {
+          // Silently fail
+        }
+      } else {
+        // Update via Prisma API
+        try {
+          await fetch(`/api/memories/${memoryId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ recap }),
+          })
+        } catch {
+          // Silently fail
+        }
+      }
+
+      // Update the local state so recap appears immediately in the drawer
+      get().updateMemory(memoryId, { recap })
+    } catch {
+      // Non-blocking: never fail the save flow
+    }
+  },
+
   // ── Background link content reading (non-blocking) ──────────────────
   backgroundReadLink: async (memoryId: string, url: string) => {
     try {
@@ -901,7 +960,7 @@ export const useAetherStore = create<AetherState>((set, get) => ({
   // ── Save Memory (Supabase-aware, optimistic UI, token-saving) ────────
   saveMemory: async (data) => {
     const state = get()
-    const { type, title, content, sourceUrl, tags, collectionIds } = data
+    const { type, title, content, sourceUrl, imageUrl, tags, collectionIds } = data
 
     // ── STEP 1: Smart Token Saver — local, free, instant tags ──────────
     const fullText = `${title || ''} ${content || ''}`.trim()
@@ -937,6 +996,7 @@ export const useAetherStore = create<AetherState>((set, get) => ({
             title: title || '',
             content: content || '',
             source_url: sourceUrl || null,
+            image_url: imageUrl || null,
             tags: finalTags ? (Array.isArray(finalTags) ? finalTags.join(',') : finalTags) : '',
           })
           .select('*, memory_collections(collection_id, collections(id, name, color, icon))')
@@ -968,17 +1028,22 @@ export const useAetherStore = create<AetherState>((set, get) => ({
           get().backgroundAutoTag(memory.id, content, title || '')
         }
 
-        // ── STEP 3: AI summary generation — skip for short notes (saves tokens) ──
+        // ── STEP 3: AI recap generation — always generate for drawer ──
+        if (content?.trim()) {
+          get().backgroundAutoRecap(memory.id, content, title || '')
+        }
+
+        // ── STEP 4: AI summary generation — skip for short notes (saves tokens) ──
         if (content?.trim() && !isShortNote) {
           get().backgroundAutoSummary(memory.id, content)
         }
 
-        // ── STEP 4: If this is a link, read the URL content (background, non-blocking) ──
+        // ── STEP 5: If this is a link, read the URL content (background, non-blocking) ──
         if (sourceUrl?.trim()) {
           get().backgroundReadLink(memory.id, sourceUrl)
         }
 
-        // ── STEP 5: Generate embedding for semantic search (background, non-blocking) ──
+        // ── STEP 6: Generate embedding for semantic search (background, non-blocking) ──
         if (content?.trim()) {
           get().backgroundGenerateEmbedding(memory.id, content)
         }
@@ -1000,6 +1065,7 @@ export const useAetherStore = create<AetherState>((set, get) => ({
           title,
           content,
           sourceUrl,
+          imageUrl,
           tags: finalTags,
           collectionIds,
         }),
@@ -1016,17 +1082,22 @@ export const useAetherStore = create<AetherState>((set, get) => ({
           get().backgroundAutoTag(memory.id, content, title || '')
         }
 
-        // ── STEP 3: AI summary generation — skip for short notes (saves tokens) ──
+        // ── STEP 3: AI recap generation — always generate for drawer ──
+        if (content?.trim()) {
+          get().backgroundAutoRecap(memory.id, content, title || '')
+        }
+
+        // ── STEP 4: AI summary generation — skip for short notes (saves tokens) ──
         if (content?.trim() && !isShortNote) {
           get().backgroundAutoSummary(memory.id, content)
         }
 
-        // ── STEP 4: If this is a link, read the URL content (background, non-blocking) ──
+        // ── STEP 5: If this is a link, read the URL content (background, non-blocking) ──
         if (sourceUrl?.trim()) {
           get().backgroundReadLink(memory.id, sourceUrl)
         }
 
-        // ── STEP 5: Generate embedding for semantic search (background, non-blocking) ──
+        // ── STEP 6: Generate embedding for semantic search (background, non-blocking) ──
         if (content?.trim()) {
           get().backgroundGenerateEmbedding(memory.id, content)
         }

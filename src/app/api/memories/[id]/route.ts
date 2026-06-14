@@ -9,7 +9,7 @@ export async function PATCH(
   try {
     const { id } = await params
     const body = await req.json()
-    const { title, content, tags, sourceUrl, isFavorite, type, summary, collectionIds } = body
+    const { title, content, tags, sourceUrl, isFavorite, type, summary, recap, imageUrl, collectionIds } = body
 
     // ── Try Supabase first if authenticated ──
     try {
@@ -26,6 +26,8 @@ export async function PATCH(
         if (isFavorite !== undefined) updateData.is_favorite = isFavorite
         if (type !== undefined) updateData.type = type
         if (summary !== undefined) updateData.summary = summary
+        if (recap !== undefined) updateData.recap = recap
+        if (imageUrl !== undefined) updateData.image_url = imageUrl
 
         const { error } = await supabase
           .from('memories')
@@ -68,6 +70,8 @@ export async function PATCH(
               sourceUrl: m.source_url,
               fileUrl: m.file_url,
               imagePreview: m.image_preview,
+              imageUrl: m.image_url,
+              recap: m.recap,
               isFavorite: m.is_favorite,
               createdAt: m.created_at,
               updatedAt: m.updated_at,
@@ -97,6 +101,8 @@ export async function PATCH(
     if (isFavorite !== undefined) updateData.isFavorite = isFavorite
     if (type !== undefined) updateData.type = type
     if (summary !== undefined) updateData.summary = summary
+    if (recap !== undefined) updateData.recap = recap
+    if (imageUrl !== undefined) updateData.imageUrl = imageUrl
 
     // Handle collection membership updates
     if (collectionIds !== undefined) {
@@ -133,6 +139,8 @@ export async function PATCH(
       sourceUrl: memory.sourceUrl,
       fileUrl: memory.fileUrl,
       imagePreview: memory.imagePreview,
+      imageUrl: memory.imageUrl,
+      recap: memory.recap,
       isFavorite: memory.isFavorite,
       createdAt: memory.createdAt.toISOString(),
       updatedAt: memory.updatedAt.toISOString(),

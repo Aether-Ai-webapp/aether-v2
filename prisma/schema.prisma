@@ -17,6 +17,8 @@ model Memory {
   sourceUrl    String?
   fileUrl      String?
   imagePreview String?
+  imageUrl     String?  // Supabase Storage public URL for uploaded images
+  recap        String?  // AI-generated 2-sentence recap
   isFavorite   Boolean  @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

@@ -22,6 +22,8 @@ CREATE TABLE IF NOT EXISTS memories (
   source_url TEXT,
   file_url TEXT,
   image_preview TEXT,
+  image_url TEXT,  -- Supabase Storage public URL for uploaded images
+  recap TEXT,      -- AI-generated 2-sentence recap
   is_favorite BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()

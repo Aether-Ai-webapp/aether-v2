@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { formatDistanceToNow } from 'date-fns'
 import {
   Mic,
+  MicOff,
   Send,
   Sparkles,
   X,
@@ -17,8 +18,10 @@ import {
   Command,
   Zap,
   Brain,
-  ArrowRight,
   Clock,
+  Image as ImageIcon,
+  Loader2,
+  ChevronRight,
 } from 'lucide-react'
 import { useAetherStore, type Memory, type MemoryType } from '@/lib/aether-store'
 import { cn } from '@/lib/utils'
@@ -66,12 +69,12 @@ interface Particle {
 
 function generateParticles(count: number = 12): Particle[] {
   const colors = [
-    'rgba(124, 58, 237, 0.8)',    // violet-600
-    'rgba(99, 102, 241, 0.7)',    // indigo-500
-    'rgba(79, 70, 229, 0.6)',     // indigo-600
-    'rgba(59, 130, 246, 0.5)',    // blue-500
-    'rgba(37, 99, 235, 0.5)',     // blue-600
-    'rgba(236, 72, 153, 0.6)',    // pink-500
+    'rgba(124, 58, 237, 0.8)',
+    'rgba(99, 102, 241, 0.7)',
+    'rgba(79, 70, 229, 0.6)',
+    'rgba(59, 130, 246, 0.5)',
+    'rgba(37, 99, 235, 0.5)',
+    'rgba(236, 72, 153, 0.6)',
   ]
   return Array.from({ length: count }, (_, i) => ({
     id: i,
@@ -99,18 +102,13 @@ function ParticleBurst({ particles, isDark }: { particles: Particle[]; isDark: b
             scale: [0, p.scale, 0],
             rotate: p.rotate,
           }}
-          transition={{
-            duration: p.duration,
-            ease: [0.22, 1, 0.36, 1],
-          }}
+          transition={{ duration: p.duration, ease: [0.22, 1, 0.36, 1] }}
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
           style={{
             width: p.size,
             height: p.size,
             backgroundColor: p.color,
-            boxShadow: isDark
-              ? `0 0 ${p.size * 3}px ${p.color}`
-              : `0 0 ${p.size}px ${p.color}`,
+            boxShadow: isDark ? `0 0 ${p.size * 3}px ${p.color}` : `0 0 ${p.size}px ${p.color}`,
           }}
         />
       ))}
@@ -189,7 +187,6 @@ function BorderBeam({ isFocused, isDark }: { isFocused: boolean; isDark: boolean
           transition={{ duration: 0.4 }}
           className="absolute -inset-[1px] rounded-2xl overflow-hidden pointer-events-none z-0"
         >
-          {/* Rotating gradient beam */}
           <div className="absolute inset-0 animate-border-beam">
             <div
               className="absolute inset-0"
@@ -198,7 +195,6 @@ function BorderBeam({ isFocused, isDark }: { isFocused: boolean; isDark: boolean
               }}
             />
           </div>
-          {/* Inner mask to create border-only effect */}
           <div className="absolute inset-[1px] rounded-2xl bg-[#0B0C0E]" />
         </motion.div>
       )}
@@ -227,6 +223,17 @@ export function Dashboard() {
   const [particles, setParticles] = useState<Particle[]>([])
   const [captureFeedback, setCaptureFeedback] = useState<CaptureFeedback | null>(null)
   const [lastSavedId, setLastSavedId] = useState<string | null>(null)
+
+  // ── Voice Recording state
+  const [isRecording, setIsRecording] = useState(false)
+  const [isTranscribing, setIsTranscribing] = useState(false)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+
+  // ── Image Upload state
+  const [pendingImage, setPendingImage] = useState<File | null>(null)
+  const [pendingImagePreview, setPendingImagePreview] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const justSavedTimer = useRef<ReturnType<typeof setTimeout>>()
   const feedbackTimer = useRef<ReturnType<typeof setTimeout>>()
@@ -258,20 +265,146 @@ export function Dashboard() {
 
   const FREE_MEMORY_LIMIT = 15
 
-  // ── Capture handler (Dopamine Engine wired in)
+  // ── Upload image to Supabase Storage ────────────────────────────────
+  const uploadImageToStorage = useCallback(async (file: File): Promise<string | null> => {
+    try {
+      // Try Supabase Storage first
+      const { getSupabaseBrowser } = await import('@/lib/aether-store')
+      // We need the raw supabase client — access it via the store's internal helper
+      // Instead, use the browser client directly
+      const { createClient } = await import('@/lib/supabase/browser')
+      const supabase = createClient()
+
+      const fileExt = file.name.split('.').pop() || 'png'
+      const fileName = `memory-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${fileExt}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('memory-assets')
+        .upload(fileName, file, { cacheControl: '3600', upsert: false })
+
+      if (uploadError) {
+        console.warn('[uploadImage] Supabase Storage upload failed:', uploadError.message)
+        // Return a data URL as fallback
+        return null
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('memory-assets')
+        .getPublicUrl(fileName)
+
+      return urlData.publicUrl
+    } catch (err) {
+      console.warn('[uploadImage] Storage upload error:', err instanceof Error ? err.message : 'Unknown')
+      return null
+    }
+  }, [])
+
+  // ── Voice Recording handlers ────────────────────────────────────────
+  const startRecording = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' })
+      mediaRecorderRef.current = mediaRecorder
+      audioChunksRef.current = []
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data)
+        }
+      }
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop())
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm;codecs=opus' })
+
+        // Send to Groq Whisper for transcription
+        setIsTranscribing(true)
+        try {
+          const formData = new FormData()
+          formData.append('audio', audioBlob, 'recording.webm')
+
+          const res = await fetch('/api/transcribe', {
+            method: 'POST',
+            body: formData,
+          })
+
+          if (res.ok) {
+            const { text } = await res.json()
+            if (text?.trim()) {
+              setCaptureText((prev) => prev ? `${prev} ${text}` : text)
+              toast.success('Voice transcribed!', { icon: <Mic className="size-4" /> })
+            } else {
+              toast.error('Could not detect speech. Try again.')
+            }
+          } else {
+            toast.error('Voice transcription failed.')
+          }
+        } catch (err) {
+          console.error('[transcribe] Error:', err)
+          toast.error('Voice transcription failed.')
+        } finally {
+          setIsTranscribing(false)
+        }
+      }
+
+      mediaRecorder.start()
+      setIsRecording(true)
+    } catch (err) {
+      console.error('[mic] Microphone access denied:', err)
+      toast.error('Microphone access denied. Please allow microphone permissions.')
+    }
+  }, [])
+
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+      setIsRecording(false)
+    }
+  }, [isRecording])
+
+  // ── Image Upload handlers ───────────────────────────────────────────
+  const handleImageSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate image
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file')
+      return
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Image must be under 10MB')
+      return
+    }
+
+    setPendingImage(file)
+
+    // Generate preview URL
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      setPendingImagePreview(event.target?.result as string)
+    }
+    reader.readAsDataURL(file)
+  }, [])
+
+  const removePendingImage = useCallback(() => {
+    setPendingImage(null)
+    setPendingImagePreview(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }, [])
+
+  // ── Capture handler (Dopamine Engine wired in) ──────────────────────
   const handleCapture = useCallback(async () => {
     const text = captureText.trim()
-    if (!text || isSaving) return
+    if ((!text && !pendingImage) || isSaving) return
 
     // ── AUTH GATE: Block submission if not signed in ──────────────────
     if (!isAuthenticated) {
-      // Save the text so we can replay after login
       const pendingText = text
       setCaptureText('')
       requireAuth(async () => {
-        // After successful auth, auto-capture the queued thought
         const detectedType = detectContentType(pendingText)
-        const memoryType = mapToMemoryType(detectedType)
+        const memoryType = pendingImage ? 'image' : mapToMemoryType(detectedType)
 
         setParticles(generateParticles(14))
         setTimeout(() => setParticles([]), 1200)
@@ -282,18 +415,25 @@ export function Dashboard() {
         if (justSavedTimer.current) clearTimeout(justSavedTimer.current)
         justSavedTimer.current = setTimeout(() => setIsJustSaved(false), 600)
 
+        // Upload image if present
+        let imageUrl: string | null = null
+        if (pendingImage) {
+          imageUrl = await uploadImageToStorage(pendingImage)
+          removePendingImage()
+        }
+
         setIsSaving(true)
         try {
           const savedMemory = await saveMemory({
             type: memoryType,
-            title: pendingText.split('\n')[0].slice(0, 80) || 'Quick Note',
+            title: pendingText.split('\n')[0].slice(0, 80) || (imageUrl ? 'Image note' : 'Quick Note'),
             content: pendingText,
             sourceUrl: detectedType === 'link' ? pendingText.trim() : null,
+            imageUrl,
           })
           if (savedMemory) {
             setLastSavedId(savedMemory.id)
             setTimeout(() => setLastSavedId(null), 1500)
-            // GUARANTEED HYDRATION after auth-gate replay
             fetchMemories()
           } else {
             toast.error('Failed to save. Please try again.')
@@ -308,7 +448,7 @@ export function Dashboard() {
     }
 
     const detectedType = detectContentType(text)
-    const memoryType = mapToMemoryType(detectedType)
+    const memoryType = pendingImage ? 'image' : mapToMemoryType(detectedType)
 
     setCaptureText('')
     setParticles(generateParticles(14))
@@ -327,19 +467,26 @@ export function Dashboard() {
       return
     }
 
+    // Upload image if present
+    let imageUrl: string | null = null
+    if (pendingImage) {
+      imageUrl = await uploadImageToStorage(pendingImage)
+      removePendingImage()
+    }
+
     setIsSaving(true)
     try {
       const savedMemory = await saveMemory({
         type: memoryType,
-        title: text.split('\n')[0].slice(0, 80) || 'Quick Note',
+        title: text.split('\n')[0].slice(0, 80) || (imageUrl ? 'Image note' : 'Quick Note'),
         content: text,
         sourceUrl: detectedType === 'link' ? text.trim() : null,
+        imageUrl,
       })
 
       if (savedMemory) {
         setLastSavedId(savedMemory.id)
         setTimeout(() => setLastSavedId(null), 1500)
-        // GUARANTEED HYDRATION: Re-fetch from backend to confirm persistence
         fetchMemories()
       } else {
         toast.error('Failed to save. Please try again.')
@@ -349,7 +496,7 @@ export function Dashboard() {
     } finally {
       setIsSaving(false)
     }
-  }, [captureText, isSaving, saveMemory, fetchMemories, memories.length, FREE_MEMORY_LIMIT, isAuthenticated, requireAuth])
+  }, [captureText, isSaving, saveMemory, fetchMemories, memories.length, FREE_MEMORY_LIMIT, isAuthenticated, requireAuth, pendingImage, uploadImageToStorage, removePendingImage])
 
   const handleCaptureKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -358,10 +505,6 @@ export function Dashboard() {
     }
   }, [handleCapture])
 
-  const handleMicClick = useCallback(() => {
-    toast.info('Voice recording coming soon!', { icon: <Mic className="size-4" /> })
-  }, [])
-
   const handleDeleteMemory = useCallback(async () => {
     if (!selectedMemory || isDeleting) return
     setIsDeleting(true)
@@ -369,7 +512,7 @@ export function Dashboard() {
       await deleteMemoryFromDB(selectedMemory.id)
       setSelectedMemory(null)
     } catch {
-      // keep modal open
+      // keep drawer open
     } finally {
       setIsDeleting(false)
     }
@@ -393,6 +536,15 @@ export function Dashboard() {
         isDark ? 'bg-transparent text-zinc-100' : 'bg-gradient-to-b from-slate-50 to-white text-gray-900'
       )}
     >
+      {/* Hidden file input for image upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleImageSelect}
+        className="hidden"
+      />
+
       {/* ── Hero Greeting + Stats ──────────────────────────────────────── */}
       <section className="relative z-10 w-full max-w-2xl mx-auto mb-8">
         <motion.div
@@ -412,7 +564,7 @@ export function Dashboard() {
             'text-sm md:text-base font-medium tracking-wide',
             isDark ? 'text-zinc-500' : 'text-gray-400'
           )}>
-            {mounted ? 'What\'s on your mind?' : ''}
+            {mounted ? "What's on your mind?" : ''}
           </p>
         </motion.div>
 
@@ -426,25 +578,18 @@ export function Dashboard() {
           <div className="flex items-center gap-2.5">
             <div className={cn(
               'size-9 rounded-xl flex items-center justify-center',
-              isDark
-                ? 'bg-indigo-500/10 border border-indigo-500/20'
-                : 'bg-purple-50 border border-purple-100'
+              isDark ? 'bg-indigo-500/10 border border-indigo-500/20' : 'bg-purple-50 border border-purple-100'
             )}>
               <Brain className={cn('size-4', isDark ? 'text-indigo-400' : 'text-purple-600')} />
             </div>
             <div>
               <span className={cn(
                 'text-2xl md:text-3xl font-black tracking-tighter block leading-none',
-                isDark
-                  ? 'text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]'
-                  : 'text-gray-900'
+                isDark ? 'text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]' : 'text-gray-900'
               )}>
                 {memories.length}
               </span>
-              <span className={cn(
-                'text-[10px] font-semibold uppercase tracking-widest',
-                isDark ? 'text-zinc-500' : 'text-gray-400'
-              )}>
+              <span className={cn('text-[10px] font-semibold uppercase tracking-widest', isDark ? 'text-zinc-500' : 'text-gray-400')}>
                 Memories
               </span>
             </div>
@@ -454,55 +599,19 @@ export function Dashboard() {
             <div className="flex items-center gap-2.5">
               <div className={cn(
                 'size-9 rounded-xl flex items-center justify-center',
-                isDark
-                  ? 'bg-emerald-500/10 border border-emerald-500/20'
-                  : 'bg-emerald-50 border border-emerald-100'
+                isDark ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-emerald-50 border border-emerald-100'
               )}>
                 <Zap className={cn('size-4', isDark ? 'text-emerald-400' : 'text-emerald-600')} />
               </div>
               <div>
                 <span className={cn(
                   'text-2xl md:text-3xl font-black tracking-tighter block leading-none',
-                  isDark
-                    ? 'text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]'
-                    : 'text-gray-900'
+                  isDark ? 'text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]' : 'text-gray-900'
                 )}>
                   {displayMemories.filter(m => m.type === 'link').length}
                 </span>
-                <span className={cn(
-                  'text-[10px] font-semibold uppercase tracking-widest',
-                  isDark ? 'text-zinc-500' : 'text-gray-400'
-                )}>
+                <span className={cn('text-[10px] font-semibold uppercase tracking-widest', isDark ? 'text-zinc-500' : 'text-gray-400')}>
                   Links
-                </span>
-              </div>
-            </div>
-          )}
-
-          {memories.length > 0 && (
-            <div className="flex items-center gap-2.5">
-              <div className={cn(
-                'size-9 rounded-xl flex items-center justify-center',
-                isDark
-                  ? 'bg-amber-500/10 border border-amber-500/20'
-                  : 'bg-amber-50 border border-amber-100'
-              )}>
-                <CheckCircle2 className={cn('size-4', isDark ? 'text-amber-400' : 'text-amber-600')} />
-              </div>
-              <div>
-                <span className={cn(
-                  'text-2xl md:text-3xl font-black tracking-tighter block leading-none',
-                  isDark
-                    ? 'text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]'
-                    : 'text-gray-900'
-                )}>
-                  {displayMemories.filter(m => /\b(todo|remind|need to|buy|must)\b/.test(m.content.toLowerCase())).length}
-                </span>
-                <span className={cn(
-                  'text-[10px] font-semibold uppercase tracking-widest',
-                  isDark ? 'text-zinc-500' : 'text-gray-400'
-                )}>
-                  Tasks
                 </span>
               </div>
             </div>
@@ -512,8 +621,48 @@ export function Dashboard() {
 
       {/* ── Fluid Search Console (Capture Bar) ────────────────────────── */}
       <section className="relative z-10 w-full max-w-2xl mx-auto mb-12">
-        {/* Animated border beam layer */}
         <BorderBeam isFocused={isCaptureFocused} isDark={isDark} />
+
+        {/* Image preview above capture bar */}
+        <AnimatePresence>
+          {pendingImagePreview && (
+            <motion.div
+              initial={{ opacity: 0, y: 12, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -12, scale: 0.9 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              className={cn(
+                'mb-3 inline-flex items-center gap-3 px-3 py-2 rounded-2xl relative',
+                isDark
+                  ? 'bg-[#16171B]/80 backdrop-blur-xl border border-white/[0.08]'
+                  : 'bg-white border border-gray-200 shadow-md'
+              )}
+            >
+              <img
+                src={pendingImagePreview}
+                alt="Preview"
+                className="size-12 rounded-xl object-cover"
+              />
+              <div className="flex flex-col">
+                <span className={cn('text-xs font-medium', isDark ? 'text-zinc-300' : 'text-gray-700')}>
+                  {pendingImage?.name.slice(0, 24) || 'Image'}
+                </span>
+                <span className={cn('text-[10px]', isDark ? 'text-zinc-600' : 'text-gray-400')}>
+                  {pendingImage ? `${(pendingImage.size / 1024).toFixed(0)}KB` : ''}
+                </span>
+              </div>
+              <button
+                onClick={removePendingImage}
+                className={cn(
+                  'size-6 rounded-lg flex items-center justify-center transition-colors ml-1',
+                  isDark ? 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/40' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                )}
+              >
+                <X className="size-3" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <motion.div
           animate={isCaptureFocused ? { scale: 1.02 } : { scale: 1 }}
@@ -529,13 +678,10 @@ export function Dashboard() {
                 : 'bg-white border border-gray-200 shadow-[0_0_0_1px_rgba(0,0,0,0.03),0_0_30px_-10px_rgba(168,85,247,0.06)] focus-within:shadow-[0_0_0_1px_rgba(168,85,247,0.2),0_0_40px_-10px_rgba(168,85,247,0.1)] focus-within:border-purple-300/30'
           )}
         >
-          {/* Command icon prefix */}
           <div className="flex items-center gap-2 px-4 py-3">
             <div className={cn(
               'shrink-0 size-8 rounded-xl flex items-center justify-center',
-              isDark
-                ? 'bg-zinc-900/80 border border-white/10'
-                : 'bg-gray-50 border border-gray-200'
+              isDark ? 'bg-zinc-900/80 border border-white/10' : 'bg-gray-50 border border-gray-200'
             )}>
               <Command className={cn('size-3.5', isDark ? 'text-zinc-500' : 'text-gray-400')} />
             </div>
@@ -550,36 +696,61 @@ export function Dashboard() {
               disabled={isSaving}
               className={cn(
                 'w-full bg-transparent text-base font-medium focus:outline-none px-2',
-                isDark
-                  ? 'text-zinc-100 placeholder:text-zinc-600'
-                  : 'text-gray-900 placeholder:text-gray-300'
+                isDark ? 'text-zinc-100 placeholder:text-zinc-600' : 'text-gray-900 placeholder:text-gray-300'
               )}
             />
 
-            {/* Mic button */}
+            {/* Image upload button */}
             <button
-              onClick={handleMicClick}
+              onClick={() => fileInputRef.current?.click()}
               className={cn(
                 'flex items-center justify-center size-9 rounded-xl transition-all duration-200 shrink-0',
                 isDark
                   ? 'bg-zinc-900/80 border border-white/10 text-zinc-500 hover:text-zinc-300 hover:border-white/20 hover:bg-zinc-800/80'
                   : 'bg-gray-50 border border-gray-200 text-gray-400 hover:text-gray-600 hover:border-gray-300'
               )}
-              aria-label="Voice recording"
+              aria-label="Attach image"
             >
-              <Mic className="size-4" />
+              <ImageIcon className="size-4" />
             </button>
 
-            {/* Capture/Send button — kinetic shimmer */}
+            {/* Mic button — recording toggle */}
+            <button
+              onClick={isRecording ? stopRecording : startRecording}
+              disabled={isTranscribing}
+              className={cn(
+                'flex items-center justify-center size-9 rounded-xl transition-all duration-200 shrink-0',
+                isRecording
+                  ? 'bg-red-500/20 border border-red-500/30 text-red-400 animate-pulse'
+                  : isTranscribing
+                    ? isDark
+                      ? 'bg-zinc-900/80 border border-white/10 text-zinc-500'
+                      : 'bg-gray-50 border border-gray-200 text-gray-400'
+                    : isDark
+                      ? 'bg-zinc-900/80 border border-white/10 text-zinc-500 hover:text-zinc-300 hover:border-white/20 hover:bg-zinc-800/80'
+                      : 'bg-gray-50 border border-gray-200 text-gray-400 hover:text-gray-600 hover:border-gray-300'
+              )}
+              aria-label={isRecording ? 'Stop recording' : 'Voice recording'}
+            >
+              {isTranscribing ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : isRecording ? (
+                <MicOff className="size-4" />
+              ) : (
+                <Mic className="size-4" />
+              )}
+            </button>
+
+            {/* Capture/Send button */}
             <motion.button
               onClick={handleCapture}
-              disabled={!captureText.trim() || isSaving}
+              disabled={(!captureText.trim() && !pendingImage) || isSaving}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               transition={{ type: 'spring', stiffness: 400, damping: 17 }}
               className={cn(
                 'flex items-center justify-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-xl transition-all duration-200 shrink-0',
-                captureText.trim() && !isSaving
+                (captureText.trim() || pendingImage) && !isSaving
                   ? isDark
                     ? 'bg-gradient-to-r from-purple-600 via-indigo-500 to-blue-500 hover:from-purple-500 hover:via-indigo-400 hover:to-blue-400 text-white shadow-[0_0_24px_-4px_rgba(168,85,247,0.5)] hover:shadow-[0_0_40px_-4px_rgba(168,85,247,0.7)] animate-shimmer'
                     : 'bg-gradient-to-r from-purple-500 to-violet-500 hover:from-purple-400 hover:to-violet-400 text-white shadow-[0_0_24px_-4px_rgba(168,85,247,0.3)] hover:shadow-[0_0_40px_-4px_rgba(168,85,247,0.5)]'
@@ -589,10 +760,7 @@ export function Dashboard() {
               )}
             >
               {isSaving ? (
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
-                >
+                <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}>
                   <Sparkles className="size-4" />
                 </motion.div>
               ) : (
@@ -606,27 +774,20 @@ export function Dashboard() {
 
           {/* 🫧 Particle Burst Layer */}
           <AnimatePresence>
-            {particles.length > 0 && (
-              <ParticleBurst particles={particles} isDark={isDark} />
-            )}
+            {particles.length > 0 && <ParticleBurst particles={particles} isDark={isDark} />}
           </AnimatePresence>
         </motion.div>
 
         {/* 🎯 Capture Feedback Card */}
         <div className="flex justify-center">
           <AnimatePresence>
-            {captureFeedback && (
-              <CaptureFeedbackCard feedback={captureFeedback} isDark={isDark} />
-            )}
+            {captureFeedback && <CaptureFeedbackCard feedback={captureFeedback} isDark={isDark} />}
           </AnimatePresence>
         </div>
 
         {/* Free Plan Limit */}
         {memories.length > 0 && (
-          <div className={cn(
-            'flex items-center justify-center gap-1.5 mt-4',
-            isDark ? 'text-zinc-600' : 'text-gray-300'
-          )}>
+          <div className={cn('flex items-center justify-center gap-1.5 mt-4', isDark ? 'text-zinc-600' : 'text-gray-300')}>
             {memories.length >= FREE_MEMORY_LIMIT ? (
               <>
                 <Crown className="size-3 text-purple-500/60" />
@@ -637,14 +798,10 @@ export function Dashboard() {
             ) : memories.length >= FREE_MEMORY_LIMIT - 3 ? (
               <>
                 <Crown className="size-3" />
-                <span className="text-[11px]">
-                  {FREE_MEMORY_LIMIT - memories.length} memories remaining on Free plan
-                </span>
+                <span className="text-[11px]">{FREE_MEMORY_LIMIT - memories.length} memories remaining on Free plan</span>
               </>
             ) : (
-              <span className="text-[11px]">
-                {memories.length} / {FREE_MEMORY_LIMIT} free memories
-              </span>
+              <span className="text-[11px]">{memories.length} / {FREE_MEMORY_LIMIT} free memories</span>
             )}
           </div>
         )}
@@ -655,20 +812,12 @@ export function Dashboard() {
         {!hasFetched ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-[180px]">
             {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                className={cn(
-                  'rounded-2xl p-6 animate-pulse',
-                  isDark
-                    ? 'bg-gradient-to-b from-zinc-900/60 to-black/30 border border-white/[0.06]'
-                    : 'bg-gray-50 border border-gray-100'
-                )}
-              >
+              <div key={i} className={cn(
+                'rounded-2xl p-6 animate-pulse',
+                isDark ? 'bg-gradient-to-b from-zinc-900/60 to-black/30 border border-white/[0.06]' : 'bg-gray-50 border border-gray-100'
+              )}>
                 <div className="flex items-start gap-4">
-                  <div className={cn(
-                    'size-10 rounded-xl shrink-0',
-                    isDark ? 'bg-zinc-800/40' : 'bg-gray-100'
-                  )} />
+                  <div className={cn('size-10 rounded-xl shrink-0', isDark ? 'bg-zinc-800/40' : 'bg-gray-100')} />
                   <div className="flex-1 space-y-3">
                     <div className={cn('h-4 rounded-lg w-3/4', isDark ? 'bg-zinc-800/40' : 'bg-gray-100')} />
                     <div className={cn('h-3 rounded-lg w-1/2', isDark ? 'bg-zinc-800/30' : 'bg-gray-100')} />
@@ -682,31 +831,22 @@ export function Dashboard() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className={cn(
-              'flex flex-col items-center justify-center py-24 text-center',
-            )}
+            className="flex flex-col items-center justify-center py-24 text-center"
           >
             <div className={cn(
               'size-20 rounded-3xl flex items-center justify-center mb-6',
-              isDark
-                ? 'bg-gradient-to-b from-zinc-900/80 to-zinc-900/40 border border-white/[0.06]'
-                : 'bg-gray-50 border border-gray-100'
+              isDark ? 'bg-gradient-to-b from-zinc-900/80 to-zinc-900/40 border border-white/[0.06]' : 'bg-gray-50 border border-gray-100'
             )}>
               <Brain className={cn('size-10', isDark ? 'text-zinc-700' : 'text-gray-200')} />
             </div>
-            <p className={cn('text-lg font-semibold mb-1', isDark ? 'text-zinc-500' : 'text-gray-400')}>
-              Your mind is clear
-            </p>
-            <p className={cn('text-sm', isDark ? 'text-zinc-700' : 'text-gray-300')}>
-              Dump a thought above to start building your second brain.
-            </p>
+            <p className={cn('text-lg font-semibold mb-1', isDark ? 'text-zinc-500' : 'text-gray-400')}>Your mind is clear</p>
+            <p className={cn('text-sm', isDark ? 'text-zinc-700' : 'text-gray-300')}>Dump a thought above to start building your second brain.</p>
           </motion.div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-[minmax(180px,auto)]">
             {displayMemories.map((memory, index) => {
               const detectedType = detectContentType(memory.content)
-              // Bento: first card spans 2 columns, links span 2 cols, rest 1 col
-              const isWide = index === 0 || detectedType === 'link'
+              const isWide = index === 0 || detectedType === 'link' || memory.imageUrl
               return (
                 <MemoryCard
                   key={memory.id}
@@ -723,10 +863,10 @@ export function Dashboard() {
         )}
       </section>
 
-      {/* ── Memory Detail Modal ─────────────────────────────────────── */}
+      {/* ── Memory Drawer ─────────────────────────────────────────── */}
       <AnimatePresence>
         {selectedMemory && (
-          <MemoryDetailModal
+          <MemoryDrawer
             memory={selectedMemory}
             isDark={isDark}
             onClose={() => setSelectedMemory(null)}
@@ -736,11 +876,7 @@ export function Dashboard() {
         )}
       </AnimatePresence>
 
-      <PaywallModal
-        open={showPaywall}
-        onClose={() => setShowPaywall(false)}
-        isDark={isDark}
-      />
+      <PaywallModal open={showPaywall} onClose={() => setShowPaywall(false)} isDark={isDark} />
     </motion.div>
   )
 }
@@ -754,8 +890,7 @@ function MemoryCard({ memory, isDark, isNew, isWide, index, onClick }: {
   index: number
   onClick: () => void
 }) {
-  const displayTitle =
-    memory.title || memory.content.split('\n')[0].slice(0, 80) || 'Untitled'
+  const displayTitle = memory.title || memory.content.split('\n')[0].slice(0, 80) || 'Untitled'
   const relativeTime = formatDistanceToNow(new Date(memory.createdAt), { addSuffix: true })
   const detectedType = detectContentType(memory.content)
   const config = categoryConfig[detectedType]
@@ -775,10 +910,7 @@ function MemoryCard({ memory, isDark, isNew, isWide, index, onClick }: {
       }
       whileHover={{ y: -4, transition: { type: 'spring', stiffness: 400, damping: 25 } }}
       whileTap={{ scale: 0.98 }}
-      className={cn(
-        'group relative',
-        isWide && 'md:col-span-2'
-      )}
+      className={cn('group relative', isWide && 'md:col-span-2')}
     >
       <div
         onClick={onClick}
@@ -795,20 +927,26 @@ function MemoryCard({ memory, isDark, isNew, isWide, index, onClick }: {
       >
         {isNew && <ShimmerBorder isDark={isDark} />}
 
+        {/* Card image */}
+        {memory.imageUrl && (
+          <div className="mb-3 relative z-0">
+            <img
+              src={memory.imageUrl}
+              alt={displayTitle}
+              className="w-full h-32 object-cover rounded-xl"
+            />
+          </div>
+        )}
+
         {/* Card type badge */}
         <div className="flex items-center justify-between mb-4 relative z-0">
           <div className={cn(
             'size-8 rounded-xl flex items-center justify-center transition-all duration-300',
-            isDark
-              ? 'bg-zinc-900/80 border border-white/10 group-hover:border-white/20'
-              : 'bg-gray-50 border border-gray-100'
+            isDark ? 'bg-zinc-900/80 border border-white/10 group-hover:border-white/20' : 'bg-gray-50 border border-gray-100'
           )}>
             <Icon className={cn('size-3.5', config.color)} />
           </div>
-          <span className={cn(
-            'text-[10px] font-semibold uppercase tracking-widest',
-            isDark ? 'text-zinc-600' : 'text-gray-300'
-          )}>
+          <span className={cn('text-[10px] font-semibold uppercase tracking-widest', isDark ? 'text-zinc-600' : 'text-gray-300')}>
             {detectedType}
           </span>
         </div>
@@ -826,38 +964,23 @@ function MemoryCard({ memory, isDark, isNew, isWide, index, onClick }: {
         {memory.tags.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-1.5 relative z-0">
             {memory.tags.slice(0, isWide ? 4 : 3).map((tag) => (
-              <span
-                key={tag}
-                className={cn(
-                  'inline-block text-[10px] font-semibold px-2.5 py-1 rounded-lg uppercase tracking-wider',
-                  isDark
-                    ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/10'
-                    : 'bg-purple-50 text-purple-600'
-                )}
-              >
+              <span key={tag} className={cn(
+                'inline-block text-[10px] font-semibold px-2.5 py-1 rounded-lg uppercase tracking-wider',
+                isDark ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/10' : 'bg-purple-50 text-purple-600'
+              )}>
                 {tag}
               </span>
             ))}
-            {memory.tags.length > (isWide ? 4 : 3) && (
-              <span className={cn(
-                'inline-block text-[10px] font-semibold px-2.5 py-1 rounded-lg uppercase tracking-wider',
-                isDark ? 'bg-zinc-800/40 text-zinc-500 border border-white/[0.04]' : 'bg-gray-100 text-gray-400'
-              )}>
-                +{memory.tags.length - (isWide ? 4 : 3)}
-              </span>
-            )}
           </div>
         )}
 
         {/* Footer */}
         <div className="flex items-center gap-2 mt-4 relative z-0">
           <Clock className={cn('size-3', isDark ? 'text-zinc-700' : 'text-gray-300')} />
-          <span className={cn(
-            'text-[11px] font-medium',
-            isDark ? 'text-zinc-600' : 'text-gray-400'
-          )}>
+          <span className={cn('text-[11px] font-medium', isDark ? 'text-zinc-600' : 'text-gray-400')}>
             {relativeTime}
           </span>
+          <ChevronRight className={cn('size-3 ml-auto opacity-0 group-hover:opacity-100 transition-opacity', isDark ? 'text-zinc-500' : 'text-gray-400')} />
         </div>
 
         {/* Hover spotlight overlay */}
@@ -870,8 +993,8 @@ function MemoryCard({ memory, isDark, isNew, isWide, index, onClick }: {
   )
 }
 
-// ─── Memory Detail Modal ────────────────────────────────────────────
-function MemoryDetailModal({
+// ─── Memory Drawer (Slide-in Panel) ──────────────────────────────────
+function MemoryDrawer({
   memory,
   isDark,
   onClose,
@@ -884,136 +1007,41 @@ function MemoryDetailModal({
   onDelete: () => void
   isDeleting: boolean
 }) {
-  const [relatedMemories, setRelatedMemories] = useState<Array<{
-    id: string
-    title: string
-    content: string
-    tags: string[]
-    type: string
-    createdAt: string
-    similarity: number | null
-  }>>([])
-  const [loadingRelated, setLoadingRelated] = useState(true)
-  const [generatingSummary, setGeneratingSummary] = useState(false)
-
-  // Fetch related memories
-  useEffect(() => {
-    setLoadingRelated(true)
-    fetch(`/api/memories/related/${memory.id}`)
-      .then((res) => res.ok ? res.json() : { related: [] })
-      .then((data) => setRelatedMemories(data.related || []))
-      .catch(() => setRelatedMemories([]))
-      .finally(() => setLoadingRelated(false))
-  }, [memory.id])
-
-  // Generate summary on demand if missing
-  const handleGenerateSummary = useCallback(async () => {
-    setGeneratingSummary(true)
-    try {
-      const res = await fetch('/api/ai/summary', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: memory.content.slice(0, 1000) }),
-      })
-      if (res.ok) {
-        const { summary } = await res.json()
-        if (summary?.trim()) {
-          // Update the memory in the store
-          useAetherStore.getState().updateMemory(memory.id, { summary })
-          // Also persist to backend
-          fetch(`/api/memories/${memory.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ summary }),
-          }).catch(() => {})
-        }
-      }
-    } catch {
-      // silent
-    } finally {
-      setGeneratingSummary(false)
-    }
-  }, [memory.id, memory.content])
-
-  // Download PDF
-  const handleDownloadPDF = useCallback(() => {
-    const doc = document.createElement('div')
-    doc.innerHTML = `
-      <div style="font-family: system-ui, sans-serif; max-width: 700px; margin: 0 auto; padding: 40px; color: #1a1a2e;">
-        <div style="border-bottom: 2px solid #7c3aed; padding-bottom: 16px; margin-bottom: 24px;">
-          <h1 style="font-size: 24px; font-weight: 700; margin: 0 0 8px 0; color: #1a1a2e;">${memory.title || 'Untitled Memory'}</h1>
-          <p style="font-size: 12px; color: #6b7280; margin: 0;">${new Date(memory.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
-          ${memory.tags.length > 0 ? `<div style="margin-top: 8px;">${memory.tags.map(t => `<span style="display: inline-block; background: #f3e8ff; color: #7c3aed; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-right: 4px; text-transform: uppercase; letter-spacing: 0.5px;">${t}</span>`).join('')}</div>` : ''}
-        </div>
-        ${memory.summary ? `
-        <div style="background: #faf5ff; border-left: 3px solid #7c3aed; padding: 16px 20px; margin-bottom: 24px; border-radius: 0 8px 8px 0;">
-          <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #7c3aed; margin: 0 0 8px 0;">AI Summary</p>
-          <p style="font-size: 14px; line-height: 1.6; color: #374151; margin: 0;">${memory.summary}</p>
-        </div>
-        ` : ''}
-        <div style="margin-bottom: 32px;">
-          <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; margin: 0 0 12px 0;">Original</p>
-          <p style="font-size: 14px; line-height: 1.7; color: #374151; white-space: pre-wrap; margin: 0;">${memory.content}</p>
-        </div>
-        ${memory.sourceUrl ? `
-        <div style="border-top: 1px solid #e5e7eb; padding-top: 16px;">
-          <p style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; margin: 0 0 8px 0;">Source</p>
-          <p style="font-size: 13px; color: #7c3aed; margin: 0; word-break: break-all;">${memory.sourceUrl}</p>
-        </div>
-        ` : ''}
-        <div style="margin-top: 48px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center;">
-          <p style="font-size: 11px; color: #d1d5db; margin: 0;">Exported from Aether — Your Second Brain</p>
-        </div>
-      </div>
-    `
-
-    const printWindow = window.open('', '_blank')
-    if (printWindow) {
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>${memory.title || 'Memory'} — Aether</title>
-            <style>
-              @media print { @page { margin: 20mm; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
-            </style>
-          </head>
-          <body>${doc.innerHTML}</body>
-        </html>
-      `)
-      printWindow.document.close()
-      setTimeout(() => { printWindow.print() }, 300)
-    }
-  }, [memory])
-
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
-      className="fixed inset-0 bg-black/80 backdrop-blur-xl z-50 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
+    <>
+      {/* Backdrop */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.9, y: 30, filter: 'blur(8px)' }}
-        animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
-        exit={{ opacity: 0, scale: 0.9, y: 30, filter: 'blur(8px)' }}
-        transition={{ type: 'spring', stiffness: 260, damping: 22 }}
-        onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+        onClick={onClose}
+      />
+
+      {/* Drawer Panel */}
+      <motion.div
+        initial={{ x: '100%' }}
+        animate={{ x: 0 }}
+        exit={{ x: '100%' }}
+        transition={{ type: 'spring', stiffness: 260, damping: 28 }}
         className={cn(
-          'rounded-3xl p-8 max-w-lg w-full shadow-2xl max-h-[85vh] overflow-y-auto',
+          'fixed top-0 right-0 h-full z-50 w-full max-w-md overflow-y-auto',
           isDark
-            ? 'bg-gradient-to-b from-[#181A20]/95 to-[#0D0E12]/95 backdrop-blur-2xl border border-white/[0.08] shadow-[0_0_60px_-10px_rgba(99,102,241,0.2)]'
-            : 'bg-white border border-gray-200 shadow-purple-500/5'
+            ? 'bg-gradient-to-b from-[#181A20] to-[#0D0E12] border-l border-white/[0.06]'
+            : 'bg-white border-l border-gray-200'
         )}
       >
-        {/* Close button */}
-        <div className="flex justify-between items-start mb-6">
+        {/* Header */}
+        <div className={cn(
+          'sticky top-0 z-10 flex items-center justify-between px-6 py-4',
+          isDark
+            ? 'bg-[#181A20]/90 backdrop-blur-xl border-b border-white/[0.06]'
+            : 'bg-white/90 backdrop-blur-xl border-b border-gray-100'
+        )}>
           <h2 className={cn(
-            'text-xl font-bold tracking-tight pr-8',
-            isDark
-              ? 'bg-gradient-to-b from-white to-zinc-400 bg-clip-text text-transparent'
-              : 'text-gray-900'
+            'text-lg font-bold tracking-tight pr-4',
+            isDark ? 'bg-gradient-to-b from-white to-zinc-400 bg-clip-text text-transparent' : 'text-gray-900'
           )}>
             {memory.title || 'Untitled Memory'}
           </h2>
@@ -1030,181 +1058,107 @@ function MemoryDetailModal({
           </button>
         </div>
 
-        {/* AI Summary Section */}
-        <div className={cn(
-          'rounded-2xl p-5 mb-5',
-          isDark
-            ? 'bg-indigo-500/[0.06] border border-indigo-500/10 shadow-[inset_0_0_20px_-10px_rgba(99,102,241,0.1)]'
-            : 'bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-100/60'
-        )}>
-          <p className={cn(
-            'text-[10px] font-bold uppercase tracking-[0.15em] mb-3 flex items-center gap-2',
-            isDark ? 'text-indigo-400' : 'text-purple-600'
-          )}>
-            <Sparkles className="w-3.5 h-3.5" />
-            AI Summary
-          </p>
-          {memory.summary ? (
-            <p className={cn(
-              'text-sm leading-relaxed font-medium',
-              isDark ? 'text-zinc-300' : 'text-gray-700'
+        <div className="px-6 py-6 space-y-6">
+          {/* AI Recap Section */}
+          {memory.recap && (
+            <div className={cn(
+              'rounded-2xl p-5',
+              isDark
+                ? 'bg-indigo-500/[0.06] border border-indigo-500/10 shadow-[inset_0_0_20px_-10px_rgba(99,102,241,0.1)]'
+                : 'bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-100/60'
             )}>
-              {memory.summary}
-            </p>
-          ) : (
-            <div className="flex items-center gap-3">
-              <p className={cn('text-sm', isDark ? 'text-zinc-600' : 'text-gray-400')}>
-                No AI summary yet
+              <p className={cn(
+                'text-[10px] font-bold uppercase tracking-[0.15em] mb-3 flex items-center gap-2',
+                isDark ? 'text-indigo-400' : 'text-purple-600'
+              )}>
+                <Sparkles className="w-3.5 h-3.5" />
+                AI Recap
               </p>
-              <motion.button
-                onClick={handleGenerateSummary}
-                disabled={generatingSummary}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-                className={cn(
-                  'text-xs font-semibold px-3.5 py-1.5 rounded-lg transition-colors',
-                  isDark
-                    ? 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 disabled:opacity-50 border border-indigo-500/10'
-                    : 'bg-purple-100 text-purple-700 hover:bg-purple-200 disabled:opacity-50'
-                )}
-              >
-                {generatingSummary ? 'Generating...' : 'Generate'}
-              </motion.button>
+              <p className={cn('text-sm leading-relaxed font-medium', isDark ? 'text-zinc-400' : 'text-gray-600')}>
+                {memory.recap}
+              </p>
             </div>
           )}
-        </div>
 
-        {/* Tags Section */}
-        {memory.tags.length > 0 && (
-          <div className="mb-5">
-            <p className={cn(
-              'text-[10px] font-bold uppercase tracking-[0.15em] mb-3',
-              isDark ? 'text-zinc-600' : 'text-gray-400'
-            )}>
-              Tags
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {memory.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className={cn(
+          {/* Image */}
+          {memory.imageUrl && (
+            <div>
+              <p className={cn(
+                'text-[10px] font-bold uppercase tracking-[0.15em] mb-3',
+                isDark ? 'text-zinc-600' : 'text-gray-400'
+              )}>
+                Image
+              </p>
+              <img
+                src={memory.imageUrl}
+                alt={memory.title || 'Memory image'}
+                className="w-full rounded-2xl object-cover max-h-64"
+              />
+            </div>
+          )}
+
+          {/* Tags */}
+          {memory.tags.length > 0 && (
+            <div>
+              <p className={cn('text-[10px] font-bold uppercase tracking-[0.15em] mb-3', isDark ? 'text-zinc-600' : 'text-gray-400')}>
+                Tags
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {memory.tags.map((tag) => (
+                  <span key={tag} className={cn(
                     'text-xs px-3 py-1 rounded-lg font-semibold',
                     isDark ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/10' : 'bg-purple-100 text-purple-700'
-                  )}
-                >
-                  {tag}
-                </span>
-              ))}
+                  )}>
+                    {tag}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-
-        {/* Related Memories Section */}
-        <div className="mb-5">
-          <p className={cn(
-            'text-[10px] font-bold uppercase tracking-[0.15em] mb-3',
-            isDark ? 'text-zinc-600' : 'text-gray-400'
-          )}>
-            Related Memories
-          </p>
-          {loadingRelated ? (
-            <div className={cn(
-              'rounded-xl p-4 animate-pulse',
-              isDark ? 'bg-zinc-900/30' : 'bg-gray-50'
-            )}>
-              <div className={cn('h-3 rounded-lg w-2/3 mb-2', isDark ? 'bg-zinc-800/40' : 'bg-gray-200')} />
-              <div className={cn('h-3 rounded-lg w-1/2', isDark ? 'bg-zinc-800/30' : 'bg-gray-200')} />
-            </div>
-          ) : relatedMemories.length > 0 ? (
-            <div className="space-y-2">
-              {relatedMemories.slice(0, 3).map((rm) => (
-                <div
-                  key={rm.id}
-                  className={cn(
-                    'rounded-xl p-4 text-sm transition-all duration-200',
-                    isDark
-                      ? 'bg-zinc-900/40 border border-white/[0.04] hover:bg-zinc-800/50 hover:border-white/[0.08]'
-                      : 'bg-gray-50 border border-gray-100 hover:bg-gray-100'
-                  )}
-                >
-                  <p className={cn('font-semibold text-xs mb-1', isDark ? 'text-zinc-300' : 'text-gray-700')}>
-                    {rm.title}
-                  </p>
-                  <p className={cn('text-xs leading-relaxed', isDark ? 'text-zinc-500' : 'text-gray-500')}>
-                    {rm.content.slice(0, 80)}{rm.content.length > 80 ? '...' : ''}
-                  </p>
-                  {rm.similarity !== null && (
-                    <p className={cn('text-[10px] mt-1.5 font-semibold', isDark ? 'text-indigo-400/50' : 'text-purple-500/60')}>
-                      {Math.round(rm.similarity * 100)}% match
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className={cn('text-xs', isDark ? 'text-zinc-600' : 'text-gray-400')}>
-              No related memories found yet. Save more memories to discover connections!
-            </p>
           )}
-        </div>
 
-        {/* Original Content */}
-        <div className="mb-6">
-          <p className={cn(
-            'text-[10px] font-bold uppercase tracking-[0.15em] mb-3',
-            isDark ? 'text-zinc-600' : 'text-gray-400'
-          )}>
-            Original
-          </p>
-          <p className={cn(
-            'text-sm leading-relaxed whitespace-pre-wrap font-medium',
-            isDark ? 'text-zinc-300' : 'text-gray-800'
-          )}>
-            {memory.content}
-          </p>
-        </div>
-
-        {/* Source URL */}
-        {memory.sourceUrl && (
-          <div className="mb-6">
-            <p className={cn(
-              'text-[10px] font-bold uppercase tracking-[0.15em] mb-3',
-              isDark ? 'text-zinc-600' : 'text-gray-400'
-            )}>
-              Source
+          {/* Original Content */}
+          <div>
+            <p className={cn('text-[10px] font-bold uppercase tracking-[0.15em] mb-3', isDark ? 'text-zinc-600' : 'text-gray-400')}>
+              Original
             </p>
-            <a
-              href={memory.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={cn(
-                'text-sm underline break-all font-medium',
-                isDark ? 'text-indigo-400/70 hover:text-indigo-400' : 'text-purple-600 hover:text-purple-800'
-              )}
-            >
-              {memory.sourceUrl}
-            </a>
+            <p className={cn('text-sm leading-relaxed whitespace-pre-wrap font-medium', isDark ? 'text-zinc-300' : 'text-gray-800')}>
+              {memory.content}
+            </p>
           </div>
-        )}
 
-        {/* Actions */}
-        <div className="flex items-center gap-3 pt-3 border-t border-white/[0.06]">
-          <motion.button
-            onClick={handleDownloadPDF}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-            className={cn(
-              'flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors',
-              isDark
-                ? 'bg-zinc-900/80 border border-white/10 text-zinc-300 hover:border-white/20 hover:bg-zinc-800/80'
-                : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-100'
-            )}
-          >
-            <Download className="size-4" />
-            PDF
-          </motion.button>
+          {/* Source URL */}
+          {memory.sourceUrl && (
+            <div>
+              <p className={cn('text-[10px] font-bold uppercase tracking-[0.15em] mb-3', isDark ? 'text-zinc-600' : 'text-gray-400')}>
+                Source
+              </p>
+              <a
+                href={memory.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn('text-sm underline break-all font-medium', isDark ? 'text-indigo-400/70 hover:text-indigo-400' : 'text-purple-600 hover:text-purple-800')}
+              >
+                {memory.sourceUrl}
+              </a>
+            </div>
+          )}
+
+          {/* Timestamp */}
+          <div className="flex items-center gap-2">
+            <Clock className={cn('size-3.5', isDark ? 'text-zinc-700' : 'text-gray-300')} />
+            <span className={cn('text-xs font-medium', isDark ? 'text-zinc-600' : 'text-gray-400')}>
+              {formatDistanceToNow(new Date(memory.createdAt), { addSuffix: true })}
+            </span>
+          </div>
+        </div>
+
+        {/* Bottom Actions */}
+        <div className={cn(
+          'sticky bottom-0 px-6 py-4 flex items-center gap-3',
+          isDark
+            ? 'bg-[#0D0E12]/90 backdrop-blur-xl border-t border-white/[0.06]'
+            : 'bg-white/90 backdrop-blur-xl border-t border-gray-100'
+        )}>
           <motion.button
             onClick={onDelete}
             disabled={isDeleting}
@@ -1212,20 +1166,18 @@ function MemoryDetailModal({
             whileTap={{ scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 400, damping: 17 }}
             className={cn(
-              'text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors',
+              'flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors',
               isDark
-                ? 'bg-red-500/[0.06] border border-red-500/10 text-red-400/60 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/20'
-                : 'text-red-500 hover:text-red-600 hover:bg-red-50 border border-red-100',
+                ? 'text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/10'
+                : 'text-red-500 bg-red-50 hover:bg-red-100 border border-red-100',
               isDeleting && 'opacity-50 cursor-not-allowed'
             )}
           >
-            <span className="flex items-center justify-center gap-2">
-              <Trash2 className="size-4" />
-              {isDeleting ? 'Deleting...' : 'Delete'}
-            </span>
+            <Trash2 className="size-4" />
+            {isDeleting ? 'Deleting...' : 'Delete'}
           </motion.button>
         </div>
       </motion.div>
-    </motion.div>
+    </>
   )
 }
