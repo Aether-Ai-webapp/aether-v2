@@ -11,15 +11,13 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
 export function AuthModal() {
-  const { showAuthModal, setShowAuthModal, login, signup, darkMode } = useAetherStore()
+  const { showAuthModal, setShowAuthModal, login, signup } = useAetherStore()
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [isLoading, setIsLoading] = useState(false)
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
-
-  const isDark = darkMode
 
   const resetForm = () => {
     setEmail('')
@@ -51,34 +49,27 @@ export function AuthModal() {
         : await signup(email.trim(), password, name.trim())
 
       if (success) {
-        toast.success(mode === 'login' ? 'Welcome back!' : 'Account created!')
+        toast.success(mode === 'login' ? 'Welcome back' : 'Account created')
         handleClose()
       } else {
-        toast.error(mode === 'login' ? 'Invalid email or password' : 'Signup failed. Email may already be in use.')
+        toast.error(mode === 'login' ? 'Invalid email or password' : 'Signup failed')
       }
     } catch {
-      toast.error('Something went wrong. Please try again.')
+      toast.error('Something went wrong')
     } finally {
       setIsLoading(false)
     }
   }
 
   const inputClasses = cn(
-    'pl-10 h-12 rounded-xl text-sm font-medium transition-all duration-200',
-    isDark
-      ? 'bg-zinc-900/60 border-white/[0.06] text-zinc-100 placeholder:text-zinc-600 focus:border-[#A594F9]/40 focus-visible:ring-[#A594F9]/15 focus-visible:ring-2'
-      : 'bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-purple-400 focus-visible:ring-purple-400/20 focus-visible:ring-2'
+    'pl-10 h-11 rounded-xl text-sm font-medium transition-all duration-200',
+    'bg-white/60 border border-black/[0.03] text-zinc-800 placeholder:text-zinc-300',
+    'focus:border-purple-300/60 focus:shadow-[0_0_30px_rgba(168,85,247,0.04)] focus-visible:ring-0'
   )
 
-  const iconClasses = cn(
-    'absolute left-3.5 top-1/2 -translate-y-1/2 size-4',
-    isDark ? 'text-zinc-500' : 'text-gray-400'
-  )
+  const iconClasses = 'absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-zinc-300'
 
-  const labelClasses = cn(
-    'text-[10px] font-medium uppercase tracking-widest',
-    isDark ? 'text-zinc-500' : 'text-gray-500'
-  )
+  const labelClasses = 'text-[10px] font-medium uppercase tracking-widest text-zinc-400'
 
   return (
     <AnimatePresence>
@@ -89,74 +80,46 @@ export function AuthModal() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md"
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm"
             onClick={handleClose}
           />
 
           {/* Modal */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 30, filter: 'blur(8px)' }}
-            animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, scale: 0.9, y: 30, filter: 'blur(8px)' }}
-            transition={{ duration: 0.35, ease: [0.22, 1, 0.3, 1] }}
+            initial={{ opacity: 0, scale: 0.97, y: 16 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.97, y: 16 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.3, 1] }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div
-              className={cn(
-                'relative w-full max-w-md rounded-3xl p-8 shadow-2xl',
-                isDark
-                  ? 'bg-[#0E1013]/98 backdrop-blur-2xl border border-white/[0.04]'
-                  : 'bg-white/98 backdrop-blur-2xl border border-gray-200 shadow-purple-500/5'
-              )}
+              className="relative w-full max-w-sm rounded-2xl p-8 bg-white/80 backdrop-blur-2xl border border-black/[0.03] shadow-[0_8px_40px_rgb(0,0,0,0.04)]"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Close button */}
+              {/* Close */}
               <button
                 onClick={handleClose}
-                className={cn(
-                  'absolute top-5 right-5 size-9 rounded-xl flex items-center justify-center transition-all duration-200',
-                  isDark
-                    ? 'bg-zinc-900/90 border border-white/[0.06] text-zinc-500 hover:text-zinc-300 hover:border-white/[0.08]'
-                    : 'bg-gray-100 hover:bg-gray-200 text-gray-400 hover:text-gray-600'
-                )}
+                className="absolute top-4 right-4 size-7 rounded-lg flex items-center justify-center transition-colors text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50"
               >
-                <X className="size-4" />
+                <X className="size-3.5" />
               </button>
 
               {/* Header */}
-              <div className="flex flex-col items-center mb-8">
-                <motion.div
-                  initial={{ scale: 0.7, rotate: -8 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 18 }}
-                  className="size-16 rounded-2xl bg-zinc-800/80 flex items-center justify-center mb-5"
-                >
-                  <Brain className="size-8 text-[#A594F9]" />
-                </motion.div>
-                <h2 className={cn(
-                  'text-2xl font-medium tracking-tight',
-                  isDark
-                    ? 'text-zinc-100'
-                    : 'text-gray-900'
-                )}>
+              <div className="flex flex-col items-center mb-7">
+                <div className="size-12 rounded-xl bg-zinc-900 flex items-center justify-center mb-4">
+                  <Brain className="size-6 text-white" />
+                </div>
+                <h2 className="text-lg font-medium tracking-tight text-zinc-800">
                   {mode === 'login' ? 'Welcome back' : 'Create account'}
                 </h2>
-                <p className={cn(
-                  'text-sm mt-1.5 font-medium',
-                  isDark ? 'text-zinc-600' : 'text-gray-400'
-                )}>
-                  {mode === 'login'
-                    ? 'Sign in to sync your memories across devices'
-                    : 'Start saving memories to the cloud'}
-                </p>
               </div>
 
               {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-3.5">
                 {mode === 'signup' && (
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <Label className={labelClasses}>Name</Label>
                     <div className="relative">
                       <User className={iconClasses} />
@@ -171,7 +134,7 @@ export function AuthModal() {
                   </div>
                 )}
 
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label className={labelClasses}>Email</Label>
                   <div className="relative">
                     <Mail className={iconClasses} />
@@ -187,7 +150,7 @@ export function AuthModal() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label className={labelClasses}>Password</Label>
                   <div className="relative">
                     <Lock className={iconClasses} />
@@ -206,35 +169,29 @@ export function AuthModal() {
                   type="submit"
                   disabled={isLoading}
                   className={cn(
-                    'w-full flex items-center justify-center gap-2 h-12 rounded-xl font-bold transition-all duration-200 mt-2',
-                    'bg-[#A594F9]/[0.12] hover:bg-[#A594F9]/[0.18] text-[#A594F9] border border-[#A594F9]/20',
-                    'disabled:opacity-50 disabled:cursor-not-allowed'
+                    'w-full flex items-center justify-center gap-2 h-11 rounded-xl font-medium transition-colors duration-150 mt-1',
+                    'bg-zinc-900 hover:bg-zinc-800 text-white',
+                    'disabled:opacity-40 disabled:cursor-not-allowed'
                   )}
                 >
                   {isLoading ? (
                     <>
                       <Loader2 className="size-4 animate-spin" />
-                      {mode === 'login' ? 'Signing in...' : 'Creating account...'}
                     </>
                   ) : (
                     <>
                       {mode === 'login' ? 'Sign In' : 'Create Account'}
-                      <ArrowRight className="size-4" />
+                      <ArrowRight className="size-3.5" />
                     </>
                   )}
                 </button>
               </form>
 
               {/* Switch mode */}
-              <div className="mt-6 text-center">
+              <div className="mt-5 text-center">
                 <button
                   onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
-                  className={cn(
-                    'text-xs font-medium transition-colors',
-                    isDark
-                      ? 'text-zinc-500 hover:text-zinc-300'
-                      : 'text-gray-400 hover:text-gray-700'
-                  )}
+                  className="text-[11px] font-medium text-zinc-400 hover:text-zinc-600 transition-colors"
                   disabled={isLoading}
                 >
                   {mode === 'login'

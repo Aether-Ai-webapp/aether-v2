@@ -4,7 +4,6 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import {
   User,
-  Moon,
   Sun,
   Crown,
   Download,
@@ -474,32 +473,19 @@ export function Settings() {
         <Card className="border-0 shadow-sm bg-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
-              {darkMode ? (
-                <Moon className="size-4 text-[#B8A9C9]" />
-              ) : (
-                <Sun className="size-4 text-[#F2CC8F]" />
-              )}
+              <Sun className="size-4 text-[#F2CC8F]" />
               Appearance
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className={cn(
-                  'flex items-center justify-center size-9 rounded-lg shrink-0',
-                  darkMode ? 'bg-[#2d2d4a]' : 'bg-[#F2CC8F]/30'
-                )}>
-                  {darkMode ? (
-                    <Moon className="size-4 text-[#B8A9C9]" />
-                  ) : (
-                    <Sun className="size-4 text-[#F2CC8F]" />
-                  )}
+                <div className="flex items-center justify-center size-9 rounded-lg shrink-0 bg-amber-50">
+                  <Sun className="size-4 text-amber-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-foreground">Dark Mode</p>
-                  <p className="text-xs text-muted-foreground">
-                    {darkMode ? 'On — easy on the eyes' : 'Off — bright and warm'}
-                  </p>
+                  <p className="text-sm font-medium text-foreground">Light Mode</p>
+                  <p className="text-xs text-muted-foreground">Warm and serene</p>
                 </div>
               </div>
               <Switch

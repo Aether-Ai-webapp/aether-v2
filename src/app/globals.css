@@ -41,78 +41,43 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --animate-float: float 6s ease-in-out infinite;
+  --animate-float: float 8s ease-in-out infinite;
 }
 
-/* Aether Calm Light Theme */
+/* ─── Aether Serene Light Theme ─────────────────────────────────────── */
 :root {
   --radius: 0.75rem;
-  --background: #F7F7F8;
-  --foreground: #1a1a2e;
+  --background: #F9FAFB;
+  --foreground: #18181b;
   --card: #FFFFFF;
-  --card-foreground: #1a1a2e;
+  --card-foreground: #18181b;
   --popover: #FFFFFF;
-  --popover-foreground: #1a1a2e;
+  --popover-foreground: #18181b;
   --primary: #7C6FA0;
   --primary-foreground: #FFFFFF;
-  --secondary: #F0EEF2;
-  --secondary-foreground: #1a1a2e;
-  --muted: #F0EEF2;
-  --muted-foreground: #71717a;
-  --accent: #E8E5ED;
-  --accent-foreground: #1a1a2e;
+  --secondary: #F4F4F5;
+  --secondary-foreground: #18181b;
+  --muted: #F4F4F5;
+  --muted-foreground: #a1a1aa;
+  --accent: #F4F4F5;
+  --accent-foreground: #18181b;
   --destructive: #EF4444;
-  --border: #E4E2E8;
-  --input: #E4E2E8;
-  --ring: #9381FF;
-  --chart-1: #9381FF;
-  --chart-2: #A594F9;
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #a78bfa;
+  --chart-1: #a78bfa;
+  --chart-2: #818cf8;
   --chart-3: #81B29A;
   --chart-4: #F2CC8F;
   --chart-5: #7C6FA0;
-  --sidebar: #F0EEF2;
-  --sidebar-foreground: #1a1a2e;
-  --sidebar-primary: #9381FF;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #18181b;
+  --sidebar-primary: #7C6FA0;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #E8E5ED;
-  --sidebar-accent-foreground: #1a1a2e;
-  --sidebar-border: #E4E2E8;
-  --sidebar-ring: #9381FF;
-}
-
-/* Aether Calm Dark Theme — Deep Slate, Not Pitch Black */
-.dark {
-  --background: #090A0C;
-  --foreground: #e4e4e7;
-  --card: rgba(21,23,28,0.40);
-  --card-foreground: #e4e4e7;
-  --popover: rgba(21,23,28,0.95);
-  --popover-foreground: #e4e4e7;
-  --primary: #A594F9;
-  --primary-foreground: #ffffff;
-  --secondary: rgba(39,39,42,0.4);
-  --secondary-foreground: #e4e4e7;
-  --muted: rgba(39,39,42,0.4);
-  --muted-foreground: #71717a;
-  --accent: rgba(39,39,42,0.4);
-  --accent-foreground: #e4e4e7;
-  --destructive: #EF4444;
-  --border: rgba(255,255,255,0.04);
-  --input: rgba(255,255,255,0.06);
-  --ring: #A594F9;
-  --chart-1: #A594F9;
-  --chart-2: #9381FF;
-  --chart-3: #81B29A;
-  --chart-4: #F2CC8F;
-  --chart-5: #7C6FA0;
-  --sidebar: rgba(9,10,12,0.80);
-  --sidebar-foreground: #e4e4e7;
-  --sidebar-primary: #A594F9;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgba(39,39,42,0.3);
-  --sidebar-accent-foreground: #e4e4e7;
-  --sidebar-border: rgba(255,255,255,0.04);
-  --sidebar-ring: #A594F9;
+  --sidebar-accent: #F4F4F5;
+  --sidebar-accent-foreground: #18181b;
+  --sidebar-border: #e4e4e7;
+  --sidebar-ring: #a78bfa;
 }
 
 @layer base {
@@ -124,38 +89,59 @@
   }
 }
 
-/* ─── Custom Scrollbar ────────────────────────────────────────────── */
+/* ─── Custom Scrollbar — Soft Light ────────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.06);
-  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255,255,255,0.10);
+  background: rgba(0, 0, 0, 0.10);
 }
 
-/* ─── Smooth Theme Transitions ────────────────────────────────────── */
+/* ─── Smooth Transitions ───────────────────────────────────────────── */
 .transition-theme {
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
-/* ─── Subtle Float (Decorative Elements) ───────────────────────── */
+/* ─── Subtle Float (Decorative Only) ──────────────────────────────── */
 @keyframes float {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
+  50% { transform: translateY(-4px); }
 }
 
 .animate-float {
-  animation: float 6s ease-in-out infinite;
+  animation: float 8s ease-in-out infinite;
 }
 
-/* ─── Line Clamp Utilities ────────────────────────────────────────── */
+/* ─── Ambient Gradient Drift ──────────────────────────────────────── */
+@keyframes ambient-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+  33% { transform: translate(30px, -20px) scale(1.05); opacity: 0.75; }
+  66% { transform: translate(-20px, 15px) scale(0.97); opacity: 0.55; }
+}
+
+.animate-ambient-drift {
+  animation: ambient-drift 30s ease-in-out infinite;
+}
+
+@keyframes ambient-drift-alt {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.5; }
+  33% { transform: translate(-25px, 18px) scale(1.03); opacity: 0.65; }
+  66% { transform: translate(20px, -12px) scale(0.96); opacity: 0.45; }
+}
+
+.animate-ambient-drift-alt {
+  animation: ambient-drift-alt 40s ease-in-out infinite;
+}
+
+/* ─── Line Clamp Utilities ─────────────────────────────────────────── */
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;

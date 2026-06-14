@@ -120,8 +120,6 @@ function MemoryCard({
 }) {
   const config = typeConfig[memory.type]
   const TypeIcon = config.icon
-  const darkMode = useAetherStore((s) => s.darkMode)
-  const isDark = darkMode
   const displayTitle =
     memory.title || memory.content.split('\n')[0].slice(0, 80) || 'Untitled'
   const contentPreview = memory.content.slice(0, 120).replace(/\n/g, ' ')
@@ -133,9 +131,7 @@ function MemoryCard({
     <motion.div variants={itemVariants}>
       <Card className={cn(
         'shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group',
-        isDark
-          ? 'bg-white/[0.015] border border-white/[0.04] hover:bg-white/[0.03] hover:border-white/[0.08]'
-          : 'bg-white/80 border border-gray-100 hover:bg-white hover:border-gray-200'
+        'bg-white/60 border border-black/[0.03] hover:bg-white/70 hover:border-black/[0.06]'
       )}>
         <CardContent className="p-3 md:p-4 space-y-2.5">
           {/* Top row: type badge + favorite + time */}
@@ -251,8 +247,6 @@ function MemoryDetail({
 }) {
   const config = typeConfig[memory.type]
   const TypeIcon = config.icon
-  const darkMode = useAetherStore((s) => s.darkMode)
-  const isDark = darkMode
   const relativeTime = formatDistanceToNow(new Date(memory.createdAt), {
     addSuffix: true,
   })
@@ -331,12 +325,10 @@ function MemoryDetail({
       {/* Content */}
       <Card className={cn(
         'shadow-sm',
-        isDark
-          ? 'bg-white/[0.015] border border-white/[0.04]'
-          : 'bg-white/80 border border-gray-100'
+        'bg-white/60 border border-black/[0.03]'
       )}>
         <CardContent className="p-4 md:p-5">
-          <p className={cn('text-sm leading-relaxed whitespace-pre-wrap break-words', isDark ? 'text-white/70' : 'text-foreground')}>
+          <p className='text-sm leading-relaxed whitespace-pre-wrap break-words text-zinc-600'>
             {memory.content}
           </p>
         </CardContent>
@@ -413,13 +405,9 @@ function MemoryDetail({
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
             AI Summary
           </p>
-          <Card className={cn(
-            isDark
-              ? 'bg-purple-500/5 border border-purple-500/10'
-              : 'bg-[#6D597A]/5 border-0'
-          )}>
+          <Card className="bg-purple-50/40 border border-purple-100/30">
             <CardContent className="p-4">
-              <p className={cn('text-sm leading-relaxed italic', isDark ? 'text-white/50' : 'text-foreground/80')}>
+              <p className="text-sm leading-relaxed italic text-zinc-500">
                 {memory.summary}
               </p>
             </CardContent>

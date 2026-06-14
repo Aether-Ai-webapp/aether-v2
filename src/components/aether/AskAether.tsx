@@ -15,33 +15,31 @@ const suggestions = [
   'What did I save this week?',
   'Summarize my recent notes',
   'Find links about design',
-  'What are my favorite memories?',
 ]
 
 // ─── Animation variants ──────────────────────────────────────────────
 const messageVariants = {
-  hidden: { opacity: 0, y: 12, scale: 0.97 },
+  hidden: { opacity: 0, y: 8 },
   visible: {
     opacity: 1,
     y: 0,
-    scale: 1,
-    transition: { duration: 0.3, ease: 'easeOut' },
+    transition: { duration: 0.2, ease: 'easeOut' as const },
   },
 }
 
 const dotBounce = {
   animate: {
-    y: [0, -6, 0],
+    y: [0, -4, 0],
     transition: {
-      duration: 0.6,
+      duration: 0.5,
       repeat: Infinity,
-      ease: 'easeInOut',
+      ease: 'easeInOut' as const,
     },
   },
 }
 
 // ─── Typing indicator ────────────────────────────────────────────────
-function TypingIndicator({ isDark }: { isDark: boolean }) {
+function TypingIndicator() {
   return (
     <motion.div
       variants={messageVariants}
@@ -49,29 +47,17 @@ function TypingIndicator({ isDark }: { isDark: boolean }) {
       animate="visible"
       className="flex items-end gap-2"
     >
-      <div className="size-7 rounded-full bg-zinc-800/80 text-[#A594F9] flex items-center justify-center shrink-0">
-        <Brain className="size-3.5" />
+      <div className="size-6 rounded-full bg-zinc-100 text-purple-400 flex items-center justify-center shrink-0">
+        <Brain className="size-3" />
       </div>
-
-      <div className={cn(
-        'rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm',
-        isDark
-          ? 'bg-[#15171C]/40 border border-white/[0.04] text-zinc-200'
-          : 'bg-white border border-gray-100 text-gray-900 shadow-md'
-      )}>
-        <div className="flex items-center gap-1.5">
+      <div className="rounded-2xl rounded-bl-sm px-3.5 py-2.5 bg-white/70 border border-black/[0.03]">
+        <div className="flex items-center gap-1">
           {[0, 1, 2].map((i) => (
             <motion.span
               key={i}
-              className={cn(
-                'size-2 rounded-full',
-                isDark ? 'bg-[#A594F9]/20' : 'bg-purple-400/40'
-              )}
+              className="size-1.5 rounded-full bg-purple-300/50"
               {...dotBounce}
-              transition={{
-                ...dotBounce.animate.transition,
-                delay: i * 0.15,
-              }}
+              transition={{ ...dotBounce.animate.transition, delay: i * 0.12 }}
             />
           ))}
         </div>
@@ -81,7 +67,7 @@ function TypingIndicator({ isDark }: { isDark: boolean }) {
 }
 
 // ─── Single message bubble ───────────────────────────────────────────
-function ChatBubble({ message, isDark }: { message: ChatMessage; isDark: boolean }) {
+function ChatBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === 'user'
 
   return (
@@ -91,21 +77,18 @@ function ChatBubble({ message, isDark }: { message: ChatMessage; isDark: boolean
       animate="visible"
       className={cn('flex items-end gap-2', isUser ? 'justify-end' : 'justify-start')}
     >
-      {/* Aether avatar for assistant */}
       {!isUser && (
-        <div className="size-7 rounded-full bg-zinc-800/80 text-[#A594F9] flex items-center justify-center shrink-0">
-          <Brain className="size-3.5" />
+        <div className="size-6 rounded-full bg-zinc-100 text-purple-400 flex items-center justify-center shrink-0">
+          <Brain className="size-3" />
         </div>
       )}
 
       <div
         className={cn(
-          'max-w-[80%] md:max-w-[70%] rounded-2xl px-4 py-3 shadow-sm',
+          'max-w-[80%] md:max-w-[70%] rounded-2xl px-3.5 py-2.5',
           isUser
-            ? 'bg-zinc-800/80 text-zinc-100 rounded-2xl rounded-br-sm'
-            : isDark
-              ? 'bg-[#15171C]/40 border border-white/[0.04] text-zinc-200 rounded-2xl rounded-bl-sm'
-              : 'bg-white border border-gray-100 text-gray-900 rounded-bl-sm shadow-md'
+            ? 'bg-zinc-900 text-white rounded-br-sm'
+            : 'bg-white/70 border border-black/[0.03] text-zinc-700 rounded-bl-sm'
         )}
       >
         {isUser ? (
@@ -115,30 +98,22 @@ function ChatBubble({ message, isDark }: { message: ChatMessage; isDark: boolean
         ) : (
           <div className={cn(
             'prose prose-sm max-w-none',
-            isDark ? 'dark:prose-invert' : '',
             'prose-p:leading-relaxed prose-p:my-1',
-            'prose-headings:my-2',
-            isDark ? 'prose-headings:text-white' : 'prose-headings:text-gray-900',
+            'prose-headings:my-2 prose-headings:text-zinc-800',
             'prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5',
-            isDark
-              ? 'prose-code:text-[#A594F9] prose-code:before:content-[\'\'] prose-code:after:content-[\'\']'
-              : 'prose-code:text-purple-600 prose-code:before:content-[\'\'] prose-code:after:content-[\'\']',
-            isDark
-              ? 'prose-pre:bg-white/[0.025] prose-pre:border prose-pre:border-white/[0.04]'
-              : 'prose-pre:bg-gray-50 prose-pre:border prose-pre:border-gray-100',
-            isDark ? 'prose-strong:text-white' : 'prose-strong:text-gray-900',
-            isDark ? 'prose-a:text-[#A594F9]' : 'prose-a:text-purple-600',
-            'prose-a:underline'
+            'prose-code:text-purple-500 prose-code:before:content-[\'\'] prose-code:after:content-[\'\']',
+            'prose-pre:bg-zinc-50 prose-pre:border prose-pre:border-black/[0.03]',
+            'prose-strong:text-zinc-800',
+            'prose-a:text-purple-500 prose-a:underline'
           )}>
             <ReactMarkdown>{message.content}</ReactMarkdown>
           </div>
         )}
       </div>
 
-      {/* User avatar */}
       {isUser && (
-        <div className="size-7 rounded-full bg-zinc-700/80 text-zinc-200 flex items-center justify-center shrink-0">
-          <MessageCircle className="size-3.5" />
+        <div className="size-6 rounded-full bg-zinc-200 text-zinc-500 flex items-center justify-center shrink-0">
+          <MessageCircle className="size-3" />
         </div>
       )}
     </motion.div>
@@ -146,60 +121,36 @@ function ChatBubble({ message, isDark }: { message: ChatMessage; isDark: boolean
 }
 
 // ─── Empty state ─────────────────────────────────────────────────────
-function EmptyState({ onSuggestionClick, isDark }: { onSuggestionClick: (text: string) => void; isDark: boolean }) {
+function EmptyState({ onSuggestionClick }: { onSuggestionClick: (text: string) => void }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.4, ease: 'easeOut' }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
       className="flex flex-col items-center justify-center h-full px-4 py-12 text-center"
     >
-      <motion.div
-        initial={{ scale: 0.8 }}
-        animate={{ scale: 1 }}
-        transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
-        className={cn(
-          'size-20 rounded-2xl flex items-center justify-center mb-6 shadow-lg',
-          isDark
-            ? 'bg-[#15171C]/40 border border-white/[0.04]'
-            : 'bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-100 shadow-purple-500/5'
-        )}
-      >
-        <Brain className={cn('size-10', isDark ? 'text-[#A594F9]/50' : 'text-purple-600')} />
-      </motion.div>
+      <div className="size-14 rounded-2xl bg-zinc-100 flex items-center justify-center mb-5">
+        <Brain className="size-7 text-purple-400" />
+      </div>
 
-      <h3 className={cn(
-        'text-xl mb-2',
-        isDark
-          ? 'text-zinc-100 font-medium tracking-tight'
-          : 'text-gray-900 font-semibold'
-      )}>
-        Ask me anything about your memories
+      <h3 className="text-base font-medium tracking-tight text-zinc-800 mb-1.5">
+        Ask Aether
       </h3>
 
-      <p className={cn(
-        'text-sm max-w-[280px] mb-8',
-        isDark ? 'text-white/30' : 'text-gray-500'
-      )}>
-        I can search, summarize, and find patterns across everything you&apos;ve saved.
+      <p className="text-sm text-zinc-400 max-w-[240px] mb-7">
+        Search and explore your memories
       </p>
 
-      <div className="flex flex-wrap justify-center gap-2 max-w-[360px]">
+      <div className="flex flex-wrap justify-center gap-2 max-w-[340px]">
         {suggestions.map((suggestion, i) => (
           <motion.button
             key={suggestion}
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.2 + i * 0.08 }}
+            transition={{ duration: 0.2, delay: 0.1 + i * 0.06 }}
             onClick={() => onSuggestionClick(suggestion)}
-            className={cn(
-              'rounded-full border px-4 py-2 text-sm transition-all duration-200',
-              'hover:shadow-md active:scale-[0.97]',
-              isDark
-                ? 'border-white/[0.04] bg-[#15171C]/40 text-zinc-400 hover:bg-[#15171C]/60 hover:border-[#A594F9]/20 hover:text-zinc-200'
-                : 'border-gray-200 bg-white text-gray-600 hover:bg-purple-50 hover:border-purple-200 hover:text-purple-700 hover:shadow-purple-500/10'
-            )}
+            className="rounded-full border border-black/[0.04] bg-white/60 px-3.5 py-1.5 text-xs font-medium text-zinc-500 transition-colors hover:bg-white/80 hover:text-zinc-700 hover:border-black/[0.06]"
           >
             {suggestion}
           </motion.button>
@@ -211,13 +162,12 @@ function EmptyState({ onSuggestionClick, isDark }: { onSuggestionClick: (text: s
 
 // ─── Main AskAether component ────────────────────────────────────────
 export function AskAether() {
-  const { chatMessages, addChatMessage, clearChat, darkMode } = useAetherStore()
+  const { chatMessages, addChatMessage, clearChat } = useAetherStore()
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const isDark = darkMode
 
   const scrollToBottom = useCallback(() => {
     if (scrollRef.current) {
@@ -293,7 +243,7 @@ export function AskAether() {
         const errorMessage: ChatMessage = {
           id: `error-${Date.now()}`,
           role: 'assistant',
-          content: 'I\'m sorry, I encountered an error processing your request. Please try again.',
+          content: 'I encountered an error. Please try again.',
           timestamp: new Date(),
         }
         addChatMessage(errorMessage)
@@ -315,30 +265,17 @@ export function AskAether() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-6rem)] md:h-[calc(100dvh-4rem)] max-w-3xl mx-auto">
+    <div className="flex flex-col h-[calc(100dvh-6rem)] md:h-[calc(100dvh-4rem)] max-w-2xl mx-auto">
       {/* ── Header ─────────────────────────────────────────────────── */}
-      <div className="shrink-0 pb-4">
+      <div className="shrink-0 pb-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-zinc-800/80 text-[#A594F9] flex items-center justify-center">
-              <Sparkles className="size-5" />
+          <div className="flex items-center gap-2.5">
+            <div className="size-8 rounded-lg bg-zinc-100 text-purple-400 flex items-center justify-center">
+              <Sparkles className="size-4" />
             </div>
-            <div>
-              <h1 className={cn(
-                'text-xl tracking-tight',
-                isDark
-                  ? 'text-zinc-100 font-medium tracking-tight'
-                  : 'text-gray-900 font-bold'
-              )}>
-                Ask Aether
-              </h1>
-              <p className={cn(
-                'text-xs',
-                isDark ? 'text-zinc-500' : 'text-gray-500'
-              )}>
-                Search through your memories with AI
-              </p>
-            </div>
+            <span className="text-base font-medium tracking-tight text-zinc-800">
+              Ask Aether
+            </span>
           </div>
 
           {chatMessages.length > 0 && (
@@ -346,9 +283,7 @@ export function AskAether() {
               variant="ghost"
               size="sm"
               onClick={clearChat}
-              className={cn(
-                isDark ? 'text-zinc-500 hover:text-zinc-300' : 'text-gray-400 hover:text-gray-700'
-              )}
+              className="text-zinc-400 hover:text-zinc-600 text-xs"
             >
               Clear
             </Button>
@@ -359,24 +294,24 @@ export function AskAether() {
       {/* ── Chat Area ──────────────────────────────────────────────── */}
       <div className="flex-1 min-h-0">
         <ScrollArea ref={scrollRef} className="h-full">
-          <div className="pr-2">
+          <div className="pr-1">
             <AnimatePresence mode="popLayout">
               {chatMessages.length === 0 && !isLoading ? (
-                <EmptyState onSuggestionClick={handleSuggestionClick} isDark={isDark} />
+                <EmptyState onSuggestionClick={handleSuggestionClick} />
               ) : (
-                <div className="flex flex-col gap-4 py-2 pb-4">
+                <div className="flex flex-col gap-3 py-2 pb-4">
                   {chatMessages.map((msg) => (
                     msg.content ? (
-                      <ChatBubble key={msg.id} message={msg} isDark={isDark} />
+                      <ChatBubble key={msg.id} message={msg} />
                     ) : (
                       msg.role === 'assistant' && isLoading ? (
-                        <TypingIndicator key={msg.id} isDark={isDark} />
+                        <TypingIndicator key={msg.id} />
                       ) : null
                     )
                   ))}
                   {isLoading &&
                     (chatMessages.length === 0 || chatMessages[chatMessages.length - 1]?.role !== 'assistant') && (
-                      <TypingIndicator isDark={isDark} />
+                      <TypingIndicator />
                     )}
                 </div>
               )}
@@ -386,14 +321,13 @@ export function AskAether() {
       </div>
 
       {/* ── Input Area ─────────────────────────────────────────────── */}
-      <div className="shrink-0 pt-3 pb-2">
+      <div className="shrink-0 pt-2 pb-1">
         <form
           onSubmit={handleSubmit}
           className={cn(
-            'flex items-center gap-2 p-1.5 rounded-2xl transition-all duration-500',
-            isDark
-              ? 'bg-[#15171C]/40 border border-white/[0.04] focus-within:border-[#A594F9]/40 focus-within:shadow-[0_0_40px_rgba(165,148,249,0.06)]'
-              : 'bg-white border border-gray-200 shadow-[0_0_0_1px_rgba(0,0,0,0.03),0_0_30px_-10px_rgba(168,85,247,0.06)] focus-within:shadow-[0_0_0_1px_rgba(168,85,247,0.2),0_0_40px_-10px_rgba(168,85,247,0.1)] focus-within:border-purple-300/30'
+            'flex items-center gap-2 p-1 rounded-2xl transition-all duration-300',
+            'bg-white/60 backdrop-blur-xl border border-black/[0.03] shadow-[0_8px_30px_rgb(0,0,0,0.01)]',
+            'focus-within:border-purple-300/60 focus-within:shadow-[0_0_50px_rgba(168,85,247,0.05)]'
           )}
         >
           <div className="relative flex-1">
@@ -403,12 +337,7 @@ export function AskAether() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask about your memories..."
               disabled={isLoading}
-              className={cn(
-                'rounded-xl h-11 pl-4 pr-4 text-sm border-0 shadow-none bg-transparent',
-                isDark
-                  ? 'text-white placeholder:text-white/20 focus-visible:ring-0'
-                  : 'text-gray-900 placeholder:text-gray-400 focus-visible:ring-purple-400/30'
-              )}
+              className="rounded-xl h-10 pl-3 pr-3 text-sm border-0 shadow-none bg-transparent text-zinc-800 placeholder:text-zinc-300 focus-visible:ring-0 font-medium"
             />
           </div>
           <Button
@@ -416,21 +345,17 @@ export function AskAether() {
             disabled={!input.trim() || isLoading}
             size="icon"
             className={cn(
-              'size-10 rounded-xl transition-all active:scale-95',
-              'bg-zinc-900/90 hover:bg-zinc-800 text-zinc-100 border border-white/[0.06]',
-              'disabled:opacity-50 disabled:shadow-none'
+              'size-9 rounded-xl transition-colors',
+              input.trim() && !isLoading
+                ? 'bg-zinc-900 hover:bg-zinc-800 text-white'
+                : 'bg-zinc-100 text-zinc-300',
+              'disabled:opacity-100'
             )}
           >
-            <Send className="size-4" />
-            <span className="sr-only">Send message</span>
+            <Send className="size-3.5" />
+            <span className="sr-only">Send</span>
           </Button>
         </form>
-        <p className={cn(
-          'text-[10px] text-center mt-2',
-          isDark ? 'text-zinc-600' : 'text-gray-400'
-        )}>
-          Aether AI may make mistakes. Verify important information.
-        </p>
       </div>
     </div>
   )
