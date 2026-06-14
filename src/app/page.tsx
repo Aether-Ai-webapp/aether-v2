@@ -1,13 +1,16 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { useAetherStore } from '@/lib/aether-store'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { AppShell } from '@/components/aether/AppShell'
 import { Dashboard } from '@/components/aether/Dashboard'
 import { AskAether } from '@/components/aether/AskAether'
 import { Collections } from '@/components/aether/Collections'
 import { Memories } from '@/components/aether/Memories'
 import { Settings } from '@/components/aether/Settings'
+import { LandingPage } from '@/components/aether/LandingPage'
+import { AuthModal } from '@/components/aether/AuthModal'
 
 function ViewRouter() {
   const currentView = useAetherStore((s) => s.currentView)
@@ -24,18 +27,44 @@ function ViewRouter() {
 }
 
 export default function Home() {
-  const { checkSession } = useAetherStore()
+  const { checkSession, isAuthenticated } = useAetherStore()
+  const isMobile = useIsMobile()
+  const [hasEnteredApp, setHasEnteredApp] = useState(false)
 
   useEffect(() => {
-    // checkSession now handles the FULL initialization flow:
-    // 1. Checks if user is authenticated
-    // 2. If yes: awaits checkSupabaseTables(), then fetches memories + collections from Supabase
-    // 3. If no: fetches from Prisma API as fallback
-    // This prevents the race condition where fetchMemories ran before supabaseReady was set
     checkSession()
   }, [checkSession])
 
-  // The app IS the landing page. Render immediately.
+  const handleEnterApp = useCallback(() => {
+    setHasEnteredApp(true)
+  }, [])
+
+  // ── TWIN ARCHITECTURE ────────────────────────────────────────────────
+  // Mobile (<768px): Always render the app immediately
+  // Desktop (≥768px): Show landing page until user enters or authenticates
+
+  // Mobile: App experience, always visible
+  if (isMobile) {
+    return (
+      <AppShell>
+        <ViewRouter />
+      </AppShell>
+    )
+  }
+
+  // Desktop: If authenticated, skip landing page
+  const showApp = hasEnteredApp || isAuthenticated
+
+  if (!showApp) {
+    return (
+      <>
+        <LandingPage onEnterApp={handleEnterApp} />
+        <AuthModal />
+      </>
+    )
+  }
+
+  // Desktop: Authenticated app experience
   return (
     <AppShell>
       <ViewRouter />

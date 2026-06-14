@@ -26,3 +26,23 @@ Stage Summary:
 - Data logic, Supabase hooks, API routes — all UNTOUCHED
 - Lint passes clean, TypeScript errors in modified files all resolved
 - Browser verified: Desktop and mobile layouts render correctly
+
+---
+Task ID: 2
+Agent: Principal Frontend Architect
+Task: Twin architecture — indestructible mobile app + $100M desktop landing page
+
+Work Log:
+- Created LandingPage.tsx: Hero heading ("Your brain is full. Give it to Aether."), subhead narrative, drifting gradient effect, pricing section ($5.99/mo with 4 feature bullets), matte-black CTA button
+- Rewrote page.tsx: Twin architecture routing — mobile (<768px) always renders AppShell+ViewRouter, desktop (≥768px) shows LandingPage until user clicks CTA or authenticates, then transitions to app
+- Fixed Dashboard.tsx: Added w-full max-w-full overflow-x-hidden to parent, min-w-0 on flex children, truncate on image preview name, responsive px-4 md:px-8 padding
+- Fixed AppShell.tsx: Added w-full max-w-full overflow-x-hidden to root container and main element, w-full on flex container
+- Verified with agent-browser: Desktop landing page renders correctly with hero/pricing/CTA, mobile app renders immediately with capture bar and bottom nav, CTA transitions to app + auth modal, narrow mobile (320px) has no overflow issues
+- Clean lint pass, no TypeScript errors in modified files
+
+Stage Summary:
+- Twin architecture fully implemented: mobile sees app instantly, desktop sees $100M landing page
+- Indestructible mobile responsiveness: overflow-x-hidden on all containers, min-w-0 on flex children, responsive padding
+- Landing page features: hero heading, narrative, drifting gradient, pricing card with 4 bullets, matte-black CTA
+- CTA flow: Click "Get Started" → auth modal + app entry
+- Zero data logic or Supabase hooks modified

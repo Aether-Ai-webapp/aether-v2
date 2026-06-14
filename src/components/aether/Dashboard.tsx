@@ -359,7 +359,7 @@ export function Dashboard() {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="min-h-screen relative flex flex-col items-center pt-10 md:pt-16 pb-24 px-4"
+      className="w-full max-w-full overflow-x-hidden min-h-screen relative flex flex-col items-center pt-8 md:pt-16 pb-24 px-4 md:px-8"
     >
       {/* Hidden file input */}
       <input
@@ -387,14 +387,14 @@ export function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.15 }}
-              className="mb-2.5 inline-flex items-center gap-3 px-3 py-2 rounded-xl bg-white/60 backdrop-blur-xl border border-black/[0.03]"
+              className="mb-2.5 inline-flex items-center gap-3 px-3 py-2 rounded-xl bg-white/60 backdrop-blur-xl border border-black/[0.03] max-w-full"
             >
               <img
                 src={pendingImagePreview}
                 alt="Preview"
                 className="size-10 rounded-lg object-cover"
               />
-              <span className="text-xs font-medium text-zinc-500">
+              <span className="text-xs font-medium text-zinc-500 truncate max-w-[120px]">
                 {pendingImage?.name.slice(0, 20) || 'Image'}
               </span>
               <button
@@ -415,14 +415,14 @@ export function Dashboard() {
               : 'bg-white/60 backdrop-blur-xl border border-black/[0.03] shadow-[0_8px_30px_rgb(0,0,0,0.01)] focus-within:border-purple-300/60 focus-within:shadow-[0_0_50px_rgba(168,85,247,0.05)]'
           )}
         >
-          <div className="flex items-center gap-2 px-3 py-2.5">
+          <div className="flex items-center gap-2 px-3 py-2.5 min-w-0">
             <input
               value={captureText}
               onChange={(e) => setCaptureText(e.target.value)}
               onKeyDown={handleCaptureKeyDown}
               placeholder="What's on your mind?"
               disabled={isSaving}
-              className="w-full bg-transparent text-base font-medium text-zinc-800 placeholder:text-zinc-300 focus:outline-none px-1 tracking-tight"
+              className="w-full min-w-0 bg-transparent text-base font-medium text-zinc-800 placeholder:text-zinc-300 focus:outline-none px-1 tracking-tight"
             />
 
             {/* Image upload */}
