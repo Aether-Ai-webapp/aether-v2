@@ -61,7 +61,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className={cn(
       'min-h-screen flex flex-col transition-theme relative overflow-hidden',
-      isDark ? 'bg-[#0B0C0E] text-zinc-100' : 'bg-[#f8f9fc] text-gray-900'
+      isDark ? 'bg-[#090A0C] text-zinc-100' : 'bg-[#F7F7F8] text-gray-900'
     )}>
       {/* ── Star Field ─────────────────────────────────────────────── */}
       <StarField isDark={isDark} />
@@ -77,7 +77,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               'h-screen fixed left-0 top-0 z-40 flex flex-col transition-all duration-500 ease-out',
               sidebarExpanded ? 'w-64' : 'w-20',
               isDark
-                ? 'bg-[#0B0C0E]/80 backdrop-blur-2xl border-r border-white/[0.06]'
+                ? 'bg-[#090A0C]/80 backdrop-blur-2xl border-r border-white/[0.04]'
                 : 'bg-white/70 backdrop-blur-2xl border-r border-gray-200/50'
             )}
             onMouseEnter={() => setSidebarExpanded(true)}
@@ -87,14 +87,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className={cn(
               'flex items-center justify-between gap-2 h-16 shrink-0',
               sidebarExpanded ? 'px-4' : 'px-0 justify-center',
-              isDark ? 'border-b border-white/[0.06]' : 'border-b border-gray-200/50'
+              isDark ? 'border-b border-white/[0.04]' : 'border-b border-gray-200/50'
             )}>
               <div className="flex items-center gap-3 min-w-0">
                 <div className={cn(
                   'size-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300',
-                  'bg-gradient-to-br from-purple-500 via-indigo-500 to-blue-600',
                   isDark
-                    ? 'shadow-[0_0_20px_-3px_rgba(99,102,241,0.4)]'
+                    ? 'bg-zinc-800/80 text-[#A594F9]'
                     : 'shadow-lg shadow-purple-500/20'
                 )}>
                   <Brain className="size-5 text-white" />
@@ -107,10 +106,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       exit={{ opacity: 0, x: -8 }}
                       transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                       className={cn(
-                        'text-xl font-black tracking-tighter whitespace-nowrap overflow-hidden bg-clip-text text-transparent',
+                        'text-xl whitespace-nowrap overflow-hidden',
                         isDark
-                          ? 'bg-gradient-to-r from-white via-zinc-200 to-zinc-500'
-                          : 'bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-600'
+                          ? 'text-zinc-100 font-medium tracking-tight'
+                          : 'font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-600'
                       )}
                     >
                       AETHER
@@ -178,21 +177,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                             'flex items-center gap-3 rounded-xl p-3 text-sm font-medium transition-all duration-200 w-full',
                             isActive
                               ? isDark
-                                ? 'text-zinc-100 bg-gradient-to-r from-indigo-500/10 via-indigo-500/5 to-transparent shadow-[0_0_24px_-8px_rgba(99,102,241,0.2)] border-r-2 border-indigo-400/60'
+                                ? 'text-zinc-100 bg-[#A594F9]/[0.08] border-r-2 border-[#A594F9]/30'
                                 : 'text-purple-700 bg-gradient-to-r from-purple-50 via-violet-50 to-transparent shadow-[0_0_20px_-5px_rgba(168,85,247,0.15)] border-r-2 border-purple-500'
                               : isDark
-                                ? 'text-zinc-600 hover:text-zinc-300 hover:bg-zinc-800/40'
+                                ? 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/30'
                                 : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100/60'
                           )}
                         >
-                          <div className={cn(
-                            'flex items-center justify-center',
-                            isActive && isDark && 'animate-glow-pulse rounded-lg'
-                          )}>
+                          <div className="flex items-center justify-center">
                             <Icon className={cn(
                               'w-5 h-5 shrink-0 transition-colors duration-200',
                               isActive
-                                ? isDark ? 'text-indigo-400' : 'text-purple-600'
+                                ? isDark ? 'text-[#A594F9]' : 'text-purple-600'
                                 : ''
                             )} />
                           </div>
@@ -225,7 +221,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {/* Bottom: auth status */}
             <div className={cn(
               'p-3 shrink-0',
-              isDark ? 'border-t border-white/[0.06]' : 'border-t border-gray-200/50'
+              isDark ? 'border-t border-white/[0.04]' : 'border-t border-gray-200/50'
             )}>
               {isAuthenticated && user && sidebarExpanded && (
                 <div className={cn(
@@ -251,18 +247,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className={cn(
               'flex items-center justify-between px-4 h-14 shrink-0',
               isDark
-                ? 'bg-[#0B0C0E]/80 backdrop-blur-2xl border-b border-white/[0.06]'
+                ? 'bg-[#090A0C]/80 backdrop-blur-2xl border-b border-white/[0.04]'
                 : 'bg-white/70 backdrop-blur-2xl border-b border-gray-200/50'
             )}>
               <div className="flex items-center gap-3">
-                <div className="size-9 rounded-xl bg-gradient-to-br from-purple-500 via-indigo-500 to-blue-600 flex items-center justify-center shadow-[0_0_16px_-3px_rgba(99,102,241,0.3)]">
-                  <Brain className="size-4 text-white" />
+                <div className={cn(
+                  'size-9 rounded-xl flex items-center justify-center',
+                  isDark ? 'bg-zinc-800/80' : ''
+                )}>
+                  <Brain className={cn('size-4', isDark ? 'text-[#A594F9]' : 'text-white')} />
                 </div>
                 <span className={cn(
-                  'font-black tracking-tighter text-base bg-clip-text text-transparent',
+                  'text-base whitespace-nowrap',
                   isDark
-                    ? 'bg-gradient-to-r from-white via-zinc-200 to-zinc-500'
-                    : 'bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-600'
+                    ? 'text-zinc-100 font-medium tracking-tight'
+                    : 'font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-600'
                 )}>
                   AETHER
                 </span>
@@ -319,7 +318,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <nav className={cn(
           'fixed bottom-0 left-0 right-0 z-40 safe-area-bottom transition-theme',
           isDark
-            ? 'bg-[#0B0C0E]/90 backdrop-blur-2xl border-t border-white/[0.06]'
+            ? 'bg-[#090A0C]/90 backdrop-blur-2xl border-t border-white/[0.04]'
             : 'bg-white/80 backdrop-blur-2xl border-t border-gray-200/50'
         )}>
           <div className="flex items-center justify-around h-16 px-2 relative">
@@ -334,10 +333,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     'flex flex-col items-center justify-center gap-1 py-1.5 px-4 rounded-xl transition-all duration-200 min-w-[48px] min-h-[44px]',
                     isActive
                       ? isDark
-                        ? 'text-indigo-400 bg-indigo-500/[0.06]'
+                        ? 'text-[#A594F9] bg-[#A594F9]/[0.06]'
                         : 'text-purple-600 bg-purple-50'
                       : isDark
-                        ? 'text-zinc-600'
+                        ? 'text-zinc-500'
                         : 'text-gray-400'
                   )}
                 >
@@ -353,7 +352,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       layoutId="mobileNavIndicator"
                       className={cn(
                         'absolute -top-px left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full',
-                        isDark ? 'bg-indigo-400/60' : 'bg-purple-600'
+                        isDark ? 'bg-[#A594F9]/40' : 'bg-purple-600'
                       )}
                       transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                     />

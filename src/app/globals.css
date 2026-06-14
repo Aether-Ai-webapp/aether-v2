@@ -41,79 +41,78 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --animate-shimmer: shimmer 3s linear infinite;
-  --animate-border-beam: border-beam 3s linear infinite;
   --animate-float: float 6s ease-in-out infinite;
 }
 
-/* Aether Warm Light Theme */
+/* Aether Calm Light Theme */
 :root {
   --radius: 0.75rem;
-  --background: #FFFAF5;
+  --background: #F7F7F8;
   --foreground: #1a1a2e;
   --card: #FFFFFF;
   --card-foreground: #1a1a2e;
   --popover: #FFFFFF;
   --popover-foreground: #1a1a2e;
-  --primary: #6D597A;
+  --primary: #7C6FA0;
   --primary-foreground: #FFFFFF;
-  --secondary: #F5EDE6;
+  --secondary: #F0EEF2;
   --secondary-foreground: #1a1a2e;
-  --muted: #F5EDE6;
-  --muted-foreground: #6B7280;
-  --accent: #EAD8D0;
+  --muted: #F0EEF2;
+  --muted-foreground: #71717a;
+  --accent: #E8E5ED;
   --accent-foreground: #1a1a2e;
   --destructive: #EF4444;
-  --border: #E8DDD4;
-  --input: #E8DDD4;
-  --ring: #6D597A;
-  --chart-1: #6D597A;
-  --chart-2: #E07A5F;
+  --border: #E4E2E8;
+  --input: #E4E2E8;
+  --ring: #9381FF;
+  --chart-1: #9381FF;
+  --chart-2: #A594F9;
   --chart-3: #81B29A;
   --chart-4: #F2CC8F;
-  --chart-5: #3D405B;
-  --sidebar: #F5EDE6;
+  --chart-5: #7C6FA0;
+  --sidebar: #F0EEF2;
   --sidebar-foreground: #1a1a2e;
-  --sidebar-primary: #6D597A;
+  --sidebar-primary: #9381FF;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #EAD8D0;
+  --sidebar-accent: #E8E5ED;
   --sidebar-accent-foreground: #1a1a2e;
-  --sidebar-border: #E8DDD4;
-  --sidebar-ring: #6D597A;
+  --sidebar-border: #E4E2E8;
+  --sidebar-ring: #9381FF;
 }
 
+/* Aether Calm Dark Theme — Deep Slate, Not Pitch Black */
 .dark {
-  --background: #0B0C0E;
-  --foreground: #f4f4f5;
-  --card: rgba(22,23,27,0.8);
-  --card-foreground: #f4f4f5;
-  --popover: rgba(22,23,27,0.95);
-  --popover-foreground: #f4f4f5;
-  --primary: #6366f1;
+  --background: #090A0C;
+  --foreground: #e4e4e7;
+  --card: rgba(21,23,28,0.40);
+  --card-foreground: #e4e4e7;
+  --popover: rgba(21,23,28,0.95);
+  --popover-foreground: #e4e4e7;
+  --primary: #A594F9;
   --primary-foreground: #ffffff;
-  --secondary: rgba(39,39,42,0.5);
-  --secondary-foreground: #f4f4f5;
-  --muted: rgba(39,39,42,0.5);
+  --secondary: rgba(39,39,42,0.4);
+  --secondary-foreground: #e4e4e7;
+  --muted: rgba(39,39,42,0.4);
   --muted-foreground: #71717a;
-  --accent: rgba(39,39,42,0.5);
-  --accent-foreground: #f4f4f5;
+  --accent: rgba(39,39,42,0.4);
+  --accent-foreground: #e4e4e7;
   --destructive: #EF4444;
-  --border: rgba(255,255,255,0.06);
-  --input: rgba(255,255,255,0.08);
-  --ring: #6366f1;
-  --chart-1: #6366f1;
-  --chart-2: #E07A5F;
+  --border: rgba(255,255,255,0.04);
+  --input: rgba(255,255,255,0.06);
+  --ring: #A594F9;
+  --chart-1: #A594F9;
+  --chart-2: #9381FF;
   --chart-3: #81B29A;
   --chart-4: #F2CC8F;
-  --chart-5: #A8A8CE;
-  --sidebar: rgba(11,12,14,0.7);
-  --sidebar-foreground: #f4f4f5;
-  --sidebar-primary: #6366f1;
+  --chart-5: #7C6FA0;
+  --sidebar: rgba(9,10,12,0.80);
+  --sidebar-foreground: #e4e4e7;
+  --sidebar-primary: #A594F9;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgba(39,39,42,0.5);
-  --sidebar-accent-foreground: #f4f4f5;
-  --sidebar-border: rgba(255,255,255,0.06);
-  --sidebar-ring: #6366f1;
+  --sidebar-accent: rgba(39,39,42,0.3);
+  --sidebar-accent-foreground: #e4e4e7;
+  --sidebar-border: rgba(255,255,255,0.04);
+  --sidebar-ring: #A594F9;
 }
 
 @layer base {
@@ -127,18 +126,18 @@
 
 /* ─── Custom Scrollbar ────────────────────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: rgba(255,255,255,0.06);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--muted-foreground);
+  background: rgba(255,255,255,0.10);
 }
 
 /* ─── Smooth Theme Transitions ────────────────────────────────────── */
@@ -146,46 +145,14 @@
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
-/* ─── Shimmer Animation (Capture Button) ──────────────────────────── */
-@keyframes shimmer {
-  0% { background-position: 200% center; }
-  100% { background-position: -200% center; }
-}
-
-.animate-shimmer {
-  background-size: 200% auto;
-  animation: shimmer 3s linear infinite;
-}
-
-/* ─── Border Beam Animation (Capture Bar Focus) ───────────────────── */
-@keyframes border-beam {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.animate-border-beam {
-  animation: border-beam 3s linear infinite;
-  transform-origin: center;
-}
-
-/* ─── Float Animation (Decorative Elements) ───────────────────────── */
+/* ─── Subtle Float (Decorative Elements) ───────────────────────── */
 @keyframes float {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+  50% { transform: translateY(-6px); }
 }
 
 .animate-float {
   animation: float 6s ease-in-out infinite;
-}
-
-/* ─── Glow Pulse for Active States ────────────────────────────────── */
-@keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 20px -5px rgba(99,102,241,0.2); }
-  50% { box-shadow: 0 0 40px -5px rgba(99,102,241,0.4); }
-}
-
-.animate-glow-pulse {
-  animation: glow-pulse 2s ease-in-out infinite;
 }
 
 /* ─── Line Clamp Utilities ────────────────────────────────────────── */

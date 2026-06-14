@@ -2,10 +2,9 @@
 
 import { useEffect, useRef } from 'react'
 
-// ─── Animated Starfield Background ──────────────────────────────────
-// Renders twinkling stars using a <canvas> element for performance.
-// Dark mode: full starfield with varying brightness
-// Light mode: hidden (no stars in the sky during day)
+// ─── Subtle Starfield Background ────────────────────────────────────
+// Dark mode: sparse, very dim, warm-white dots — like distant city lights
+// Light mode: hidden
 
 interface Star {
   x: number
@@ -35,15 +34,15 @@ export function StarField({ isDark }: { isDark: boolean }) {
     resize()
     window.addEventListener('resize', resize)
 
-    // Generate stars once
+    // Generate sparse, subtle stars
     if (starsRef.current.length === 0) {
-      const count = Math.min(280, Math.floor((window.innerWidth * window.innerHeight) / 4000))
+      const count = Math.min(80, Math.floor((window.innerWidth * window.innerHeight) / 12000))
       starsRef.current = Array.from({ length: count }, () => ({
         x: Math.random() * window.innerWidth,
         y: Math.random() * window.innerHeight,
-        size: Math.random() * 1.8 + 0.3,
-        opacity: Math.random() * 0.6 + 0.15,
-        twinkleSpeed: Math.random() * 0.003 + 0.001,
+        size: Math.random() * 1.0 + 0.3,
+        opacity: Math.random() * 0.25 + 0.05,
+        twinkleSpeed: Math.random() * 0.002 + 0.0005,
         twinkleOffset: Math.random() * Math.PI * 2,
       }))
     }
@@ -64,17 +63,9 @@ export function StarField({ isDark }: { isDark: boolean }) {
         const twinkle = Math.sin(time * star.twinkleSpeed + star.twinkleOffset)
         const alpha = star.opacity * (0.5 + 0.5 * twinkle)
 
-        // Soft glow for larger stars
-        if (star.size > 1.2) {
-          ctx.beginPath()
-          ctx.arc(star.x, star.y, star.size * 3, 0, Math.PI * 2)
-          ctx.fillStyle = `rgba(160, 180, 255, ${alpha * 0.08})`
-          ctx.fill()
-        }
-
         ctx.beginPath()
         ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2)
-        ctx.fillStyle = `rgba(200, 210, 255, ${alpha})`
+        ctx.fillStyle = `rgba(180, 175, 200, ${alpha})`
         ctx.fill()
       }
 

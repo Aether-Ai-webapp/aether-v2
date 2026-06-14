@@ -49,14 +49,14 @@ function TypingIndicator({ isDark }: { isDark: boolean }) {
       animate="visible"
       className="flex items-end gap-2"
     >
-      <div className="size-7 rounded-full bg-gradient-to-br from-purple-400 via-violet-500 to-indigo-600 flex items-center justify-center shrink-0 shadow-md shadow-purple-500/15">
-        <Brain className="size-3.5 text-white" />
+      <div className="size-7 rounded-full bg-zinc-800/80 text-[#A594F9] flex items-center justify-center shrink-0">
+        <Brain className="size-3.5" />
       </div>
 
       <div className={cn(
         'rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm',
         isDark
-          ? 'bg-white/[0.025] border border-white/[0.04] text-white/90'
+          ? 'bg-[#15171C]/40 border border-white/[0.04] text-zinc-200'
           : 'bg-white border border-gray-100 text-gray-900 shadow-md'
       )}>
         <div className="flex items-center gap-1.5">
@@ -65,7 +65,7 @@ function TypingIndicator({ isDark }: { isDark: boolean }) {
               key={i}
               className={cn(
                 'size-2 rounded-full',
-                isDark ? 'bg-purple-400/20' : 'bg-purple-400/40'
+                isDark ? 'bg-[#A594F9]/20' : 'bg-purple-400/40'
               )}
               {...dotBounce}
               transition={{
@@ -93,8 +93,8 @@ function ChatBubble({ message, isDark }: { message: ChatMessage; isDark: boolean
     >
       {/* Aether avatar for assistant */}
       {!isUser && (
-        <div className="size-7 rounded-full bg-gradient-to-br from-purple-400 via-violet-500 to-indigo-600 flex items-center justify-center shrink-0 shadow-md shadow-purple-500/15">
-          <Brain className="size-3.5 text-white" />
+        <div className="size-7 rounded-full bg-zinc-800/80 text-[#A594F9] flex items-center justify-center shrink-0">
+          <Brain className="size-3.5" />
         </div>
       )}
 
@@ -102,9 +102,9 @@ function ChatBubble({ message, isDark }: { message: ChatMessage; isDark: boolean
         className={cn(
           'max-w-[80%] md:max-w-[70%] rounded-2xl px-4 py-3 shadow-sm',
           isUser
-            ? 'bg-gradient-to-br from-purple-400 via-violet-500 to-indigo-600 text-white rounded-br-sm shadow-md shadow-purple-500/15'
+            ? 'bg-zinc-800/80 text-zinc-100 rounded-2xl rounded-br-sm'
             : isDark
-              ? 'bg-white/[0.025] border border-white/[0.04] text-white/90 rounded-bl-sm'
+              ? 'bg-[#15171C]/40 border border-white/[0.04] text-zinc-200 rounded-2xl rounded-bl-sm'
               : 'bg-white border border-gray-100 text-gray-900 rounded-bl-sm shadow-md'
         )}
       >
@@ -121,13 +121,13 @@ function ChatBubble({ message, isDark }: { message: ChatMessage; isDark: boolean
             isDark ? 'prose-headings:text-white' : 'prose-headings:text-gray-900',
             'prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5',
             isDark
-              ? 'prose-code:text-purple-400 prose-code:before:content-[\'\'] prose-code:after:content-[\'\']'
+              ? 'prose-code:text-[#A594F9] prose-code:before:content-[\'\'] prose-code:after:content-[\'\']'
               : 'prose-code:text-purple-600 prose-code:before:content-[\'\'] prose-code:after:content-[\'\']',
             isDark
               ? 'prose-pre:bg-white/[0.025] prose-pre:border prose-pre:border-white/[0.04]'
               : 'prose-pre:bg-gray-50 prose-pre:border prose-pre:border-gray-100',
             isDark ? 'prose-strong:text-white' : 'prose-strong:text-gray-900',
-            isDark ? 'prose-a:text-purple-400' : 'prose-a:text-purple-600',
+            isDark ? 'prose-a:text-[#A594F9]' : 'prose-a:text-purple-600',
             'prose-a:underline'
           )}>
             <ReactMarkdown>{message.content}</ReactMarkdown>
@@ -137,8 +137,8 @@ function ChatBubble({ message, isDark }: { message: ChatMessage; isDark: boolean
 
       {/* User avatar */}
       {isUser && (
-        <div className="size-7 rounded-full bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center shrink-0 shadow-md shadow-orange-500/15">
-          <MessageCircle className="size-3.5 text-white" />
+        <div className="size-7 rounded-full bg-zinc-700/80 text-zinc-200 flex items-center justify-center shrink-0">
+          <MessageCircle className="size-3.5" />
         </div>
       )}
     </motion.div>
@@ -162,18 +162,18 @@ function EmptyState({ onSuggestionClick, isDark }: { onSuggestionClick: (text: s
         className={cn(
           'size-20 rounded-2xl flex items-center justify-center mb-6 shadow-lg',
           isDark
-            ? 'bg-gradient-to-br from-purple-500/8 to-indigo-500/8 border border-purple-500/12 shadow-purple-500/8'
+            ? 'bg-[#15171C]/40 border border-white/[0.04]'
             : 'bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-100 shadow-purple-500/5'
         )}
       >
-        <Brain className={cn('size-10', isDark ? 'text-purple-400/70' : 'text-purple-600')} />
+        <Brain className={cn('size-10', isDark ? 'text-[#A594F9]/50' : 'text-purple-600')} />
       </motion.div>
 
       <h3 className={cn(
-        'text-xl font-semibold mb-2',
+        'text-xl mb-2',
         isDark
-          ? 'bg-gradient-to-r from-white to-purple-100 bg-clip-text text-transparent'
-          : 'text-gray-900'
+          ? 'text-zinc-100 font-medium tracking-tight'
+          : 'text-gray-900 font-semibold'
       )}>
         Ask me anything about your memories
       </h3>
@@ -197,7 +197,7 @@ function EmptyState({ onSuggestionClick, isDark }: { onSuggestionClick: (text: s
               'rounded-full border px-4 py-2 text-sm transition-all duration-200',
               'hover:shadow-md active:scale-[0.97]',
               isDark
-                ? 'border-white/[0.04] bg-white/[0.02] text-white/50 hover:bg-white/[0.04] hover:border-purple-500/20 hover:text-white/80 hover:shadow-purple-500/8'
+                ? 'border-white/[0.04] bg-[#15171C]/40 text-zinc-400 hover:bg-[#15171C]/60 hover:border-[#A594F9]/20 hover:text-zinc-200'
                 : 'border-gray-200 bg-white text-gray-600 hover:bg-purple-50 hover:border-purple-200 hover:text-purple-700 hover:shadow-purple-500/10'
             )}
           >
@@ -320,21 +320,21 @@ export function AskAether() {
       <div className="shrink-0 pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-gradient-to-br from-purple-400 via-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/15">
-              <Sparkles className="size-5 text-white" />
+            <div className="size-10 rounded-xl bg-zinc-800/80 text-[#A594F9] flex items-center justify-center">
+              <Sparkles className="size-5" />
             </div>
             <div>
               <h1 className={cn(
-                'text-xl font-bold tracking-tight',
+                'text-xl tracking-tight',
                 isDark
-                  ? 'bg-gradient-to-r from-white to-purple-100 bg-clip-text text-transparent'
-                  : 'text-gray-900'
+                  ? 'text-zinc-100 font-medium tracking-tight'
+                  : 'text-gray-900 font-bold'
               )}>
                 Ask Aether
               </h1>
               <p className={cn(
                 'text-xs',
-                isDark ? 'text-white/25' : 'text-gray-500'
+                isDark ? 'text-zinc-500' : 'text-gray-500'
               )}>
                 Search through your memories with AI
               </p>
@@ -347,7 +347,7 @@ export function AskAether() {
               size="sm"
               onClick={clearChat}
               className={cn(
-                isDark ? 'text-white/25 hover:text-white/60' : 'text-gray-400 hover:text-gray-700'
+                isDark ? 'text-zinc-500 hover:text-zinc-300' : 'text-gray-400 hover:text-gray-700'
               )}
             >
               Clear
@@ -392,7 +392,7 @@ export function AskAether() {
           className={cn(
             'flex items-center gap-2 p-1.5 rounded-2xl transition-all duration-500',
             isDark
-              ? 'bg-white/[0.02] border border-white/[0.04] shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_0_30px_-10px_rgba(168,85,247,0.08)] focus-within:shadow-[0_0_0_1px_rgba(168,85,247,0.2),0_0_60px_-15px_rgba(168,85,247,0.3)] focus-within:border-purple-500/20'
+              ? 'bg-[#15171C]/40 border border-white/[0.04] focus-within:border-[#A594F9]/40 focus-within:shadow-[0_0_40px_rgba(165,148,249,0.06)]'
               : 'bg-white border border-gray-200 shadow-[0_0_0_1px_rgba(0,0,0,0.03),0_0_30px_-10px_rgba(168,85,247,0.06)] focus-within:shadow-[0_0_0_1px_rgba(168,85,247,0.2),0_0_40px_-10px_rgba(168,85,247,0.1)] focus-within:border-purple-300/30'
           )}
         >
@@ -417,8 +417,7 @@ export function AskAether() {
             size="icon"
             className={cn(
               'size-10 rounded-xl transition-all active:scale-95',
-              'bg-gradient-to-br from-purple-400 via-violet-500 to-indigo-600',
-              'hover:shadow-lg hover:shadow-purple-500/20',
+              'bg-zinc-900/90 hover:bg-zinc-800 text-zinc-100 border border-white/[0.06]',
               'disabled:opacity-50 disabled:shadow-none'
             )}
           >
@@ -428,7 +427,7 @@ export function AskAether() {
         </form>
         <p className={cn(
           'text-[10px] text-center mt-2',
-          isDark ? 'text-white/10' : 'text-gray-400'
+          isDark ? 'text-zinc-600' : 'text-gray-400'
         )}>
           Aether AI may make mistakes. Verify important information.
         </p>

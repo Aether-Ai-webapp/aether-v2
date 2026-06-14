@@ -66,18 +66,18 @@ export function AuthModal() {
   const inputClasses = cn(
     'pl-10 h-12 rounded-xl text-sm font-medium transition-all duration-200',
     isDark
-      ? 'bg-zinc-900/60 border-white/[0.08] text-zinc-100 placeholder:text-zinc-600 focus:border-indigo-500/40 focus-visible:ring-indigo-500/15 focus-visible:ring-2'
+      ? 'bg-zinc-900/60 border-white/[0.06] text-zinc-100 placeholder:text-zinc-600 focus:border-[#A594F9]/40 focus-visible:ring-[#A594F9]/15 focus-visible:ring-2'
       : 'bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-purple-400 focus-visible:ring-purple-400/20 focus-visible:ring-2'
   )
 
   const iconClasses = cn(
     'absolute left-3.5 top-1/2 -translate-y-1/2 size-4',
-    isDark ? 'text-zinc-600' : 'text-gray-400'
+    isDark ? 'text-zinc-500' : 'text-gray-400'
   )
 
   const labelClasses = cn(
-    'text-[10px] font-bold uppercase tracking-[0.15em]',
-    isDark ? 'text-zinc-600' : 'text-gray-500'
+    'text-[10px] font-medium uppercase tracking-widest',
+    isDark ? 'text-zinc-500' : 'text-gray-500'
   )
 
   return (
@@ -90,7 +90,7 @@ export function AuthModal() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl"
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md"
             onClick={handleClose}
           />
 
@@ -107,7 +107,7 @@ export function AuthModal() {
               className={cn(
                 'relative w-full max-w-md rounded-3xl p-8 shadow-2xl',
                 isDark
-                  ? 'bg-gradient-to-b from-[#181A20]/98 to-[#0D0E12]/98 backdrop-blur-2xl border border-white/[0.08] shadow-[0_0_80px_-20px_rgba(99,102,241,0.25)]'
+                  ? 'bg-[#0E1013]/98 backdrop-blur-2xl border border-white/[0.04]'
                   : 'bg-white/98 backdrop-blur-2xl border border-gray-200 shadow-purple-500/5'
               )}
               onClick={(e) => e.stopPropagation()}
@@ -118,7 +118,7 @@ export function AuthModal() {
                 className={cn(
                   'absolute top-5 right-5 size-9 rounded-xl flex items-center justify-center transition-all duration-200',
                   isDark
-                    ? 'bg-zinc-900/80 border border-white/10 text-zinc-600 hover:text-zinc-300 hover:border-white/20'
+                    ? 'bg-zinc-900/90 border border-white/[0.06] text-zinc-500 hover:text-zinc-300 hover:border-white/[0.08]'
                     : 'bg-gray-100 hover:bg-gray-200 text-gray-400 hover:text-gray-600'
                 )}
               >
@@ -131,14 +131,14 @@ export function AuthModal() {
                   initial={{ scale: 0.7, rotate: -8 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 18 }}
-                  className="size-16 rounded-2xl bg-gradient-to-br from-purple-500 via-indigo-500 to-blue-600 flex items-center justify-center shadow-[0_0_30px_-5px_rgba(99,102,241,0.4)] mb-5"
+                  className="size-16 rounded-2xl bg-zinc-800/80 flex items-center justify-center mb-5"
                 >
-                  <Brain className="size-8 text-white" />
+                  <Brain className="size-8 text-[#A594F9]" />
                 </motion.div>
                 <h2 className={cn(
-                  'text-2xl font-black tracking-tight',
+                  'text-2xl font-medium tracking-tight',
                   isDark
-                    ? 'bg-gradient-to-b from-white to-zinc-400 bg-clip-text text-transparent'
+                    ? 'text-zinc-100'
                     : 'text-gray-900'
                 )}>
                   {mode === 'login' ? 'Welcome back' : 'Create account'}
@@ -202,18 +202,13 @@ export function AuthModal() {
                   </div>
                 </div>
 
-                <motion.button
+                <button
                   type="submit"
                   disabled={isLoading}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.97 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                   className={cn(
-                    'w-full flex items-center justify-center gap-2 h-12 rounded-xl font-bold text-white transition-all duration-200 mt-2',
-                    'bg-gradient-to-r from-purple-600 via-indigo-500 to-blue-500',
-                    'hover:from-purple-500 hover:via-indigo-400 hover:to-blue-400',
-                    'shadow-[0_0_30px_-5px_rgba(99,102,241,0.4)] hover:shadow-[0_0_40px_-5px_rgba(99,102,241,0.6)]',
-                    'disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none'
+                    'w-full flex items-center justify-center gap-2 h-12 rounded-xl font-bold transition-all duration-200 mt-2',
+                    'bg-[#A594F9]/[0.12] hover:bg-[#A594F9]/[0.18] text-[#A594F9] border border-[#A594F9]/20',
+                    'disabled:opacity-50 disabled:cursor-not-allowed'
                   )}
                 >
                   {isLoading ? (
@@ -227,7 +222,7 @@ export function AuthModal() {
                       <ArrowRight className="size-4" />
                     </>
                   )}
-                </motion.button>
+                </button>
               </form>
 
               {/* Switch mode */}
@@ -237,7 +232,7 @@ export function AuthModal() {
                   className={cn(
                     'text-xs font-medium transition-colors',
                     isDark
-                      ? 'text-zinc-600 hover:text-zinc-300'
+                      ? 'text-zinc-500 hover:text-zinc-300'
                       : 'text-gray-400 hover:text-gray-700'
                   )}
                   disabled={isLoading}

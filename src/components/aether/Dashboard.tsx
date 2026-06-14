@@ -50,9 +50,9 @@ function mapToMemoryType(detected: 'link' | 'task' | 'note'): MemoryType {
 
 // ─── Category Config ─────────────────────────────────────────────────
 const categoryConfig = {
-  link: { label: 'Links', icon: Link2, color: 'text-emerald-400' },
-  task: { label: 'Tasks', icon: CheckCircle2, color: 'text-amber-400' },
-  note: { label: 'Notes', icon: FileText, color: 'text-indigo-400' },
+  link: { label: 'Links', icon: Link2, color: 'text-zinc-400' },
+  task: { label: 'Tasks', icon: CheckCircle2, color: 'text-zinc-400' },
+  note: { label: 'Notes', icon: FileText, color: 'text-zinc-400' },
 }
 
 // ─── Particle Burst Engine ───────────────────────────────────────────
@@ -69,12 +69,12 @@ interface Particle {
 
 function generateParticles(count: number = 12): Particle[] {
   const colors = [
-    'rgba(124, 58, 237, 0.8)',
-    'rgba(99, 102, 241, 0.7)',
-    'rgba(79, 70, 229, 0.6)',
-    'rgba(59, 130, 246, 0.5)',
-    'rgba(37, 99, 235, 0.5)',
-    'rgba(236, 72, 153, 0.6)',
+    'rgba(165, 148, 249, 0.20)',
+    'rgba(165, 148, 249, 0.15)',
+    'rgba(147, 129, 255, 0.18)',
+    'rgba(165, 148, 249, 0.12)',
+    'rgba(147, 129, 255, 0.14)',
+    'rgba(165, 148, 249, 0.16)',
   ]
   return Array.from({ length: count }, (_, i) => ({
     id: i,
@@ -108,7 +108,6 @@ function ParticleBurst({ particles, isDark }: { particles: Particle[]; isDark: b
             width: p.size,
             height: p.size,
             backgroundColor: p.color,
-            boxShadow: isDark ? `0 0 ${p.size * 3}px ${p.color}` : `0 0 ${p.size}px ${p.color}`,
           }}
         />
       ))}
@@ -127,78 +126,30 @@ function CaptureFeedbackCard({ feedback, isDark }: { feedback: CaptureFeedback; 
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12, scale: 0.95, filter: 'blur(4px)' }}
-      animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-      exit={{ opacity: 0, y: -8, scale: 0.98, filter: 'blur(2px)', transition: { duration: 0.3, ease: 'easeInOut' } }}
-      transition={{ type: 'spring', stiffness: 400, damping: 25, delay: 0.15 }}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8, transition: { duration: 0.3, ease: 'easeInOut' } }}
+      transition={{ duration: 0.3, ease: 'easeOut', delay: 0.15 }}
       className={cn(
         'mt-5 inline-flex items-center gap-3 px-5 py-3 rounded-2xl',
         isDark
-          ? 'bg-[#16171B]/80 backdrop-blur-xl border border-white/[0.08] shadow-[0_0_24px_-5px_rgba(168,85,247,0.2)]'
+          ? 'bg-[#15171C]/40 backdrop-blur-xl border border-white/[0.04]'
           : 'bg-white border border-purple-100 shadow-lg shadow-purple-500/10'
       )}
     >
       <div className={cn(
         'size-8 rounded-xl flex items-center justify-center',
-        isDark ? 'bg-indigo-500/10' : 'bg-purple-50'
+        isDark ? 'bg-zinc-800/60' : 'bg-purple-50'
       )}>
         <Icon className={cn('size-4', config.color)} />
       </div>
       <div className="flex items-center gap-1.5 text-sm">
         <span className={cn(isDark ? 'text-zinc-500' : 'text-gray-400')}>Captured. Cleaned up. Sent to</span>
-        <span className={cn('font-semibold', isDark ? 'text-indigo-400' : 'text-purple-600')}>
+        <span className={cn('font-medium', isDark ? 'text-[#A594F9]' : 'text-purple-600')}>
           {config.label}
         </span>
       </div>
     </motion.div>
-  )
-}
-
-// ─── Shimmer Border for New Cards ───────────────────────────────────
-function ShimmerBorder({ isDark }: { isDark: boolean }) {
-  return (
-    <motion.div
-      initial={{ x: '-100%' }}
-      animate={{ x: '200%' }}
-      transition={{ duration: 1.0, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
-      className="absolute inset-0 pointer-events-none z-10 overflow-hidden rounded-2xl"
-    >
-      <div
-        className="absolute inset-0"
-        style={{
-          background: isDark
-            ? 'linear-gradient(90deg, transparent 0%, rgba(99,102,241,0.15) 40%, rgba(168,85,247,0.25) 50%, rgba(99,102,241,0.15) 60%, transparent 100%)'
-            : 'linear-gradient(90deg, transparent 0%, rgba(168,85,247,0.1) 40%, rgba(192,132,252,0.18) 50%, rgba(168,85,247,0.1) 60%, transparent 100%)',
-        }}
-      />
-    </motion.div>
-  )
-}
-
-// ─── Animated Border Beam ───────────────────────────────────────────
-function BorderBeam({ isFocused, isDark }: { isFocused: boolean; isDark: boolean }) {
-  return (
-    <AnimatePresence>
-      {isFocused && isDark && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.4 }}
-          className="absolute -inset-[1px] rounded-2xl overflow-hidden pointer-events-none z-0"
-        >
-          <div className="absolute inset-0 animate-border-beam">
-            <div
-              className="absolute inset-0"
-              style={{
-                background: 'conic-gradient(from 0deg, transparent 0%, transparent 70%, rgba(99,102,241,0.6) 80%, rgba(168,85,247,0.8) 85%, rgba(236,72,153,0.6) 90%, transparent 100%)',
-              }}
-            />
-          </div>
-          <div className="absolute inset-[1px] rounded-2xl bg-[#0B0C0E]" />
-        </motion.div>
-      )}
-    </AnimatePresence>
   )
 }
 
@@ -533,7 +484,7 @@ export function Dashboard() {
       transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
         'min-h-screen relative overflow-hidden flex flex-col items-center pt-6 md:pt-10 pb-24 px-4',
-        isDark ? 'bg-transparent text-zinc-100' : 'bg-gradient-to-b from-slate-50 to-white text-gray-900'
+        isDark ? 'bg-[#090A0C] text-zinc-100' : 'bg-gradient-to-b from-slate-50 to-white text-gray-900'
       )}
     >
       {/* Hidden file input for image upload */}
@@ -553,15 +504,15 @@ export function Dashboard() {
           transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
         >
           <h1 className={cn(
-            'text-4xl md:text-5xl font-black tracking-tighter leading-none mb-3',
+            'text-2xl md:text-3xl font-medium tracking-tight leading-none mb-3',
             isDark
-              ? 'bg-gradient-to-b from-white via-white to-zinc-500 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(255,255,255,0.08)]'
+              ? 'text-zinc-100'
               : 'text-gray-900'
           )}>
             {mounted ? getGreeting() : ''}
           </h1>
           <p className={cn(
-            'text-sm md:text-base font-medium tracking-wide',
+            'text-sm md:text-base font-medium tracking-tight',
             isDark ? 'text-zinc-500' : 'text-gray-400'
           )}>
             {mounted ? "What's on your mind?" : ''}
@@ -578,18 +529,18 @@ export function Dashboard() {
           <div className="flex items-center gap-2.5">
             <div className={cn(
               'size-9 rounded-xl flex items-center justify-center',
-              isDark ? 'bg-indigo-500/10 border border-indigo-500/20' : 'bg-purple-50 border border-purple-100'
+              isDark ? 'bg-zinc-800/60 border border-white/[0.04]' : 'bg-purple-50 border border-purple-100'
             )}>
-              <Brain className={cn('size-4', isDark ? 'text-indigo-400' : 'text-purple-600')} />
+              <Brain className={cn('size-4', isDark ? 'text-[#A594F9]/60' : 'text-purple-600')} />
             </div>
             <div>
               <span className={cn(
-                'text-2xl md:text-3xl font-black tracking-tighter block leading-none',
-                isDark ? 'text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]' : 'text-gray-900'
+                'text-lg font-medium tracking-tight block leading-none',
+                isDark ? 'text-zinc-100' : 'text-gray-900'
               )}>
                 {memories.length}
               </span>
-              <span className={cn('text-[10px] font-semibold uppercase tracking-widest', isDark ? 'text-zinc-500' : 'text-gray-400')}>
+              <span className={cn('text-[10px] uppercase tracking-widest', isDark ? 'text-zinc-500' : 'text-gray-400')}>
                 Memories
               </span>
             </div>
@@ -599,18 +550,18 @@ export function Dashboard() {
             <div className="flex items-center gap-2.5">
               <div className={cn(
                 'size-9 rounded-xl flex items-center justify-center',
-                isDark ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-emerald-50 border border-emerald-100'
+                isDark ? 'bg-zinc-800/60 border border-white/[0.04]' : 'bg-emerald-50 border border-emerald-100'
               )}>
-                <Zap className={cn('size-4', isDark ? 'text-emerald-400' : 'text-emerald-600')} />
+                <Zap className={cn('size-4', isDark ? 'text-[#A594F9]/60' : 'text-emerald-600')} />
               </div>
               <div>
                 <span className={cn(
-                  'text-2xl md:text-3xl font-black tracking-tighter block leading-none',
-                  isDark ? 'text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]' : 'text-gray-900'
+                  'text-lg font-medium tracking-tight block leading-none',
+                  isDark ? 'text-zinc-100' : 'text-gray-900'
                 )}>
                   {displayMemories.filter(m => m.type === 'link').length}
                 </span>
-                <span className={cn('text-[10px] font-semibold uppercase tracking-widest', isDark ? 'text-zinc-500' : 'text-gray-400')}>
+                <span className={cn('text-[10px] uppercase tracking-widest', isDark ? 'text-zinc-500' : 'text-gray-400')}>
                   Links
                 </span>
               </div>
@@ -621,20 +572,18 @@ export function Dashboard() {
 
       {/* ── Fluid Search Console (Capture Bar) ────────────────────────── */}
       <section className="relative z-10 w-full max-w-2xl mx-auto mb-12">
-        <BorderBeam isFocused={isCaptureFocused} isDark={isDark} />
-
         {/* Image preview above capture bar */}
         <AnimatePresence>
           {pendingImagePreview && (
             <motion.div
-              initial={{ opacity: 0, y: 12, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -12, scale: 0.9 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
               className={cn(
-                'mb-3 inline-flex items-center gap-3 px-3 py-2 rounded-2xl relative',
+                'mb-3 inline-flex items-center gap-3 px-3 py-2 rounded-xl relative',
                 isDark
-                  ? 'bg-[#16171B]/80 backdrop-blur-xl border border-white/[0.08]'
+                  ? 'bg-[#15171C]/60 border border-white/[0.04]'
                   : 'bg-white border border-gray-200 shadow-md'
               )}
             >
@@ -664,26 +613,24 @@ export function Dashboard() {
           )}
         </AnimatePresence>
 
-        <motion.div
-          animate={isCaptureFocused ? { scale: 1.02 } : { scale: 1 }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        <div
           className={cn(
-            'relative rounded-2xl p-1 transition-all duration-500',
+            'relative rounded-2xl p-1 transition-all duration-300',
             isDark
               ? isJustSaved
-                ? 'bg-[#16171B]/80 backdrop-blur-xl border border-purple-500/30 shadow-[0_0_0_1px_rgba(168,85,247,0.4),0_0_60px_-8px_rgba(168,85,247,0.35)]'
-                : 'bg-[#16171B]/80 backdrop-blur-xl border border-white/[0.08] shadow-inner shadow-black/20 focus-within:ring-1 focus-within:ring-purple-500/50 focus-within:shadow-[0_0_50px_rgba(168,85,247,0.35)] focus-within:border-purple-500/30'
+                ? 'bg-[#15171C]/40 backdrop-blur-xl border border-[#A594F9]/20'
+                : 'bg-[#15171C]/40 backdrop-blur-xl border border-white/[0.04] focus-within:border-[#A594F9]/40 focus-within:shadow-[0_0_40px_rgba(165,148,249,0.06)]'
               : isJustSaved
                 ? 'bg-white border border-purple-300/50 shadow-[0_0_0_1px_rgba(168,85,247,0.3),0_0_40px_-10px_rgba(168,85,247,0.2)]'
-                : 'bg-white border border-gray-200 shadow-[0_0_0_1px_rgba(0,0,0,0.03),0_0_30px_-10px_rgba(168,85,247,0.06)] focus-within:shadow-[0_0_0_1px_rgba(168,85,247,0.2),0_0_40px_-10px_rgba(168,85,247,0.1)] focus-within:border-purple-300/30'
+                : 'bg-white border border-gray-200 focus-within:shadow-[0_0_0_1px_rgba(168,85,247,0.2),0_0_40px_-10px_rgba(168,85,247,0.1)] focus-within:border-purple-300/30'
           )}
         >
           <div className="flex items-center gap-2 px-4 py-3">
             <div className={cn(
               'shrink-0 size-8 rounded-xl flex items-center justify-center',
-              isDark ? 'bg-zinc-900/80 border border-white/10' : 'bg-gray-50 border border-gray-200'
+              isDark ? 'bg-zinc-800/60 border border-white/[0.04]' : 'bg-gray-50 border border-gray-200'
             )}>
-              <Command className={cn('size-3.5', isDark ? 'text-zinc-500' : 'text-gray-400')} />
+              <Command className={cn('size-3.5', isDark ? 'text-zinc-600' : 'text-gray-400')} />
             </div>
 
             <input
@@ -706,7 +653,7 @@ export function Dashboard() {
               className={cn(
                 'flex items-center justify-center size-9 rounded-xl transition-all duration-200 shrink-0',
                 isDark
-                  ? 'bg-zinc-900/80 border border-white/10 text-zinc-500 hover:text-zinc-300 hover:border-white/20 hover:bg-zinc-800/80'
+                  ? 'bg-zinc-900/90 border border-white/[0.06] text-zinc-500 hover:text-zinc-300 hover:border-white/[0.10]'
                   : 'bg-gray-50 border border-gray-200 text-gray-400 hover:text-gray-600 hover:border-gray-300'
               )}
               aria-label="Attach image"
@@ -724,10 +671,10 @@ export function Dashboard() {
                   ? 'bg-red-500/20 border border-red-500/30 text-red-400 animate-pulse'
                   : isTranscribing
                     ? isDark
-                      ? 'bg-zinc-900/80 border border-white/10 text-zinc-500'
+                      ? 'bg-zinc-900/90 border border-white/[0.06] text-zinc-500'
                       : 'bg-gray-50 border border-gray-200 text-gray-400'
                     : isDark
-                      ? 'bg-zinc-900/80 border border-white/10 text-zinc-500 hover:text-zinc-300 hover:border-white/20 hover:bg-zinc-800/80'
+                      ? 'bg-zinc-900/90 border border-white/[0.06] text-zinc-500 hover:text-zinc-300 hover:border-white/[0.10]'
                       : 'bg-gray-50 border border-gray-200 text-gray-400 hover:text-gray-600 hover:border-gray-300'
               )}
               aria-label={isRecording ? 'Stop recording' : 'Voice recording'}
@@ -742,20 +689,17 @@ export function Dashboard() {
             </button>
 
             {/* Capture/Send button */}
-            <motion.button
+            <button
               onClick={handleCapture}
               disabled={(!captureText.trim() && !pendingImage) || isSaving}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 17 }}
               className={cn(
-                'flex items-center justify-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-xl transition-all duration-200 shrink-0',
+                'flex items-center justify-center gap-2 text-sm font-medium px-4 py-2 rounded-xl transition-colors duration-200 shrink-0',
                 (captureText.trim() || pendingImage) && !isSaving
                   ? isDark
-                    ? 'bg-gradient-to-r from-purple-600 via-indigo-500 to-blue-500 hover:from-purple-500 hover:via-indigo-400 hover:to-blue-400 text-white shadow-[0_0_24px_-4px_rgba(168,85,247,0.5)] hover:shadow-[0_0_40px_-4px_rgba(168,85,247,0.7)] animate-shimmer'
+                    ? 'bg-[#A594F9]/[0.12] hover:bg-[#A594F9]/[0.18] text-[#A594F9] border border-[#A594F9]/20'
                     : 'bg-gradient-to-r from-purple-500 to-violet-500 hover:from-purple-400 hover:to-violet-400 text-white shadow-[0_0_24px_-4px_rgba(168,85,247,0.3)] hover:shadow-[0_0_40px_-4px_rgba(168,85,247,0.5)]'
                   : isDark
-                    ? 'bg-zinc-900/80 border border-white/10 text-zinc-600'
+                    ? 'bg-zinc-900/90 border border-white/[0.06] text-zinc-600'
                     : 'bg-gray-50 border border-gray-200 text-gray-300'
               )}
             >
@@ -769,14 +713,14 @@ export function Dashboard() {
                   <span className="hidden sm:inline">Capture</span>
                 </>
               )}
-            </motion.button>
+            </button>
           </div>
 
           {/* 🫧 Particle Burst Layer */}
           <AnimatePresence>
             {particles.length > 0 && <ParticleBurst particles={particles} isDark={isDark} />}
           </AnimatePresence>
-        </motion.div>
+        </div>
 
         {/* 🎯 Capture Feedback Card */}
         <div className="flex justify-center">
@@ -790,8 +734,8 @@ export function Dashboard() {
           <div className={cn('flex items-center justify-center gap-1.5 mt-4', isDark ? 'text-zinc-600' : 'text-gray-300')}>
             {memories.length >= FREE_MEMORY_LIMIT ? (
               <>
-                <Crown className="size-3 text-purple-500/60" />
-                <span className={cn('text-[11px] font-medium', isDark ? 'text-indigo-400/60' : 'text-purple-600')}>
+                <Crown className="size-3 text-[#A594F9]/60" />
+                <span className={cn('text-[11px] font-medium', isDark ? 'text-[#A594F9]/60' : 'text-purple-600')}>
                   Free limit reached — upgrade for unlimited
                 </span>
               </>
@@ -814,7 +758,7 @@ export function Dashboard() {
             {[0, 1, 2].map((i) => (
               <div key={i} className={cn(
                 'rounded-2xl p-6 animate-pulse',
-                isDark ? 'bg-gradient-to-b from-zinc-900/60 to-black/30 border border-white/[0.06]' : 'bg-gray-50 border border-gray-100'
+                isDark ? 'bg-[#15171C]/40 border border-white/[0.04]' : 'bg-gray-50 border border-gray-100'
               )}>
                 <div className="flex items-start gap-4">
                   <div className={cn('size-10 rounded-xl shrink-0', isDark ? 'bg-zinc-800/40' : 'bg-gray-100')} />
@@ -835,12 +779,12 @@ export function Dashboard() {
           >
             <div className={cn(
               'size-20 rounded-3xl flex items-center justify-center mb-6',
-              isDark ? 'bg-gradient-to-b from-zinc-900/80 to-zinc-900/40 border border-white/[0.06]' : 'bg-gray-50 border border-gray-100'
+              isDark ? 'bg-[#15171C]/40 border border-white/[0.04]' : 'bg-gray-50 border border-gray-100'
             )}>
               <Brain className={cn('size-10', isDark ? 'text-zinc-700' : 'text-gray-200')} />
             </div>
-            <p className={cn('text-lg font-semibold mb-1', isDark ? 'text-zinc-500' : 'text-gray-400')}>Your mind is clear</p>
-            <p className={cn('text-sm', isDark ? 'text-zinc-700' : 'text-gray-300')}>Dump a thought above to start building your second brain.</p>
+            <p className={cn('text-lg font-medium mb-1', isDark ? 'text-zinc-500' : 'text-gray-400')}>Your mind is clear</p>
+            <p className={cn('text-sm', isDark ? 'text-zinc-600' : 'text-gray-300')}>Dump a thought above to start building your second brain.</p>
           </motion.div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-[minmax(180px,auto)]">
@@ -898,35 +842,26 @@ function MemoryCard({ memory, isDark, isNew, isWide, index, onClick }: {
 
   return (
     <motion.div
-      initial={isNew
-        ? { opacity: 0, y: 40, scale: 0.9, filter: 'blur(8px)' }
-        : { opacity: 0, y: 30, scale: 0.95, filter: 'blur(4px)' }
-      }
-      animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-      transition={
-        isNew
-          ? { type: 'spring', stiffness: 170, damping: 18, delay: 0.2 }
-          : { type: 'spring', stiffness: 260, damping: 20, delay: index * 0.06 }
-      }
-      whileHover={{ y: -4, transition: { type: 'spring', stiffness: 400, damping: 25 } }}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut', delay: index * 0.06 }}
+      whileHover={{ y: -4, transition: { duration: 0.2 } }}
       whileTap={{ scale: 0.98 }}
       className={cn('group relative', isWide && 'md:col-span-2')}
     >
       <div
         onClick={onClick}
         className={cn(
-          'relative overflow-hidden rounded-2xl p-6 transition-all duration-300 cursor-pointer h-full',
+          'relative overflow-hidden rounded-2xl p-6 transition-all duration-200 cursor-pointer h-full',
           isNew
             ? isDark
-              ? 'bg-gradient-to-b from-zinc-900/90 to-black/40 backdrop-blur-xl border border-purple-500/20 shadow-[0_0_40px_-8px_rgba(168,85,247,0.3)]'
+              ? 'bg-[#15171C]/60 backdrop-blur-xl border border-[#A594F9]/20'
               : 'bg-white border border-purple-200/60 shadow-lg shadow-purple-500/10'
             : isDark
-              ? 'bg-gradient-to-b from-zinc-900/90 to-black/40 backdrop-blur-xl border border-white/[0.08] hover:border-zinc-500 hover:bg-zinc-800/50'
+              ? 'bg-[#15171C]/40 backdrop-blur-xl border border-white/[0.04] hover:border-white/[0.08] hover:bg-[#15171C]/60'
               : 'bg-white border border-gray-100 hover:bg-gray-50/80 hover:border-purple-200/60 hover:shadow-lg hover:shadow-purple-500/5'
         )}
       >
-        {isNew && <ShimmerBorder isDark={isDark} />}
-
         {/* Card image */}
         {memory.imageUrl && (
           <div className="mb-3 relative z-0">
@@ -941,12 +876,12 @@ function MemoryCard({ memory, isDark, isNew, isWide, index, onClick }: {
         {/* Card type badge */}
         <div className="flex items-center justify-between mb-4 relative z-0">
           <div className={cn(
-            'size-8 rounded-xl flex items-center justify-center transition-all duration-300',
-            isDark ? 'bg-zinc-900/80 border border-white/10 group-hover:border-white/20' : 'bg-gray-50 border border-gray-100'
+            'size-8 rounded-xl flex items-center justify-center transition-colors duration-200',
+            isDark ? 'bg-zinc-800/60 group-hover:border-white/[0.08]' : 'bg-gray-50 border border-gray-100'
           )}>
             <Icon className={cn('size-3.5', config.color)} />
           </div>
-          <span className={cn('text-[10px] font-semibold uppercase tracking-widest', isDark ? 'text-zinc-600' : 'text-gray-300')}>
+          <span className={cn('text-[10px] uppercase tracking-widest', isDark ? 'text-zinc-500' : 'text-gray-300')}>
             {detectedType}
           </span>
         </div>
@@ -965,8 +900,8 @@ function MemoryCard({ memory, isDark, isNew, isWide, index, onClick }: {
           <div className="mt-3 flex flex-wrap gap-1.5 relative z-0">
             {memory.tags.slice(0, isWide ? 4 : 3).map((tag) => (
               <span key={tag} className={cn(
-                'inline-block text-[10px] font-semibold px-2.5 py-1 rounded-lg uppercase tracking-wider',
-                isDark ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/10' : 'bg-purple-50 text-purple-600'
+                'inline-block text-[10px] px-2.5 py-1 rounded-lg uppercase tracking-wider',
+                isDark ? 'bg-[#A594F9]/[0.08] text-[#A594F9]/70' : 'bg-purple-50 text-purple-600'
               )}>
                 {tag}
               </span>
@@ -1028,7 +963,7 @@ function MemoryDrawer({
         className={cn(
           'fixed top-0 right-0 h-full z-50 w-full max-w-md overflow-y-auto',
           isDark
-            ? 'bg-gradient-to-b from-[#181A20] to-[#0D0E12] border-l border-white/[0.06]'
+            ? 'bg-[#0E1013]/95 backdrop-blur-2xl border-l border-white/[0.04]'
             : 'bg-white border-l border-gray-200'
         )}
       >
@@ -1036,21 +971,21 @@ function MemoryDrawer({
         <div className={cn(
           'sticky top-0 z-10 flex items-center justify-between px-6 py-4',
           isDark
-            ? 'bg-[#181A20]/90 backdrop-blur-xl border-b border-white/[0.06]'
+            ? 'bg-[#0E1013]/90 backdrop-blur-xl border-b border-white/[0.04]'
             : 'bg-white/90 backdrop-blur-xl border-b border-gray-100'
         )}>
           <h2 className={cn(
-            'text-lg font-bold tracking-tight pr-4',
-            isDark ? 'bg-gradient-to-b from-white to-zinc-400 bg-clip-text text-transparent' : 'text-gray-900'
+            'text-lg font-medium tracking-tight pr-4',
+            isDark ? 'text-zinc-100' : 'text-gray-900'
           )}>
             {memory.title || 'Untitled Memory'}
           </h2>
           <button
             onClick={onClose}
             className={cn(
-              'size-9 rounded-xl flex items-center justify-center transition-all duration-200 shrink-0',
+              'size-9 rounded-xl flex items-center justify-center transition-colors duration-200 shrink-0',
               isDark
-                ? 'bg-zinc-900/80 border border-white/10 text-zinc-500 hover:text-zinc-300 hover:border-white/20'
+                ? 'bg-zinc-900/90 border border-white/[0.06] text-zinc-500 hover:text-zinc-300 hover:border-white/[0.10]'
                 : 'bg-gray-50 border border-gray-200 text-gray-400 hover:text-gray-600'
             )}
           >
@@ -1062,14 +997,14 @@ function MemoryDrawer({
           {/* AI Recap Section */}
           {memory.recap && (
             <div className={cn(
-              'rounded-2xl p-5',
+              'rounded-xl p-5',
               isDark
-                ? 'bg-indigo-500/[0.06] border border-indigo-500/10 shadow-[inset_0_0_20px_-10px_rgba(99,102,241,0.1)]'
+                ? 'bg-[#15171C]/40 border border-white/[0.04]'
                 : 'bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-100/60'
             )}>
               <p className={cn(
-                'text-[10px] font-bold uppercase tracking-[0.15em] mb-3 flex items-center gap-2',
-                isDark ? 'text-indigo-400' : 'text-purple-600'
+                'text-[10px] uppercase tracking-[0.15em] mb-3 flex items-center gap-2',
+                isDark ? 'text-[#A594F9]/60' : 'text-purple-600'
               )}>
                 <Sparkles className="w-3.5 h-3.5" />
                 AI Recap
@@ -1084,7 +1019,7 @@ function MemoryDrawer({
           {memory.imageUrl && (
             <div>
               <p className={cn(
-                'text-[10px] font-bold uppercase tracking-[0.15em] mb-3',
+                'text-[10px] uppercase tracking-[0.15em] mb-3',
                 isDark ? 'text-zinc-600' : 'text-gray-400'
               )}>
                 Image
@@ -1100,14 +1035,14 @@ function MemoryDrawer({
           {/* Tags */}
           {memory.tags.length > 0 && (
             <div>
-              <p className={cn('text-[10px] font-bold uppercase tracking-[0.15em] mb-3', isDark ? 'text-zinc-600' : 'text-gray-400')}>
+              <p className={cn('text-[10px] uppercase tracking-[0.15em] mb-3', isDark ? 'text-zinc-600' : 'text-gray-400')}>
                 Tags
               </p>
               <div className="flex flex-wrap gap-2">
                 {memory.tags.map((tag) => (
                   <span key={tag} className={cn(
-                    'text-xs px-3 py-1 rounded-lg font-semibold',
-                    isDark ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/10' : 'bg-purple-100 text-purple-700'
+                    'text-xs px-3 py-1 rounded-lg',
+                    isDark ? 'bg-[#A594F9]/[0.08] text-[#A594F9]/70' : 'bg-purple-100 text-purple-700'
                   )}>
                     {tag}
                   </span>
@@ -1118,10 +1053,10 @@ function MemoryDrawer({
 
           {/* Original Content */}
           <div>
-            <p className={cn('text-[10px] font-bold uppercase tracking-[0.15em] mb-3', isDark ? 'text-zinc-600' : 'text-gray-400')}>
+            <p className={cn('text-[10px] uppercase tracking-[0.15em] mb-3', isDark ? 'text-zinc-600' : 'text-gray-400')}>
               Original
             </p>
-            <p className={cn('text-sm leading-relaxed whitespace-pre-wrap font-medium', isDark ? 'text-zinc-300' : 'text-gray-800')}>
+            <p className={cn('text-sm leading-relaxed whitespace-pre-wrap font-medium', isDark ? 'text-zinc-400' : 'text-gray-800')}>
               {memory.content}
             </p>
           </div>
@@ -1129,14 +1064,14 @@ function MemoryDrawer({
           {/* Source URL */}
           {memory.sourceUrl && (
             <div>
-              <p className={cn('text-[10px] font-bold uppercase tracking-[0.15em] mb-3', isDark ? 'text-zinc-600' : 'text-gray-400')}>
+              <p className={cn('text-[10px] uppercase tracking-[0.15em] mb-3', isDark ? 'text-zinc-600' : 'text-gray-400')}>
                 Source
               </p>
               <a
                 href={memory.sourceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={cn('text-sm underline break-all font-medium', isDark ? 'text-indigo-400/70 hover:text-indigo-400' : 'text-purple-600 hover:text-purple-800')}
+                className={cn('text-sm underline break-all font-medium', isDark ? 'text-[#A594F9]/70 hover:text-[#A594F9]' : 'text-purple-600 hover:text-purple-800')}
               >
                 {memory.sourceUrl}
               </a>
@@ -1156,17 +1091,14 @@ function MemoryDrawer({
         <div className={cn(
           'sticky bottom-0 px-6 py-4 flex items-center gap-3',
           isDark
-            ? 'bg-[#0D0E12]/90 backdrop-blur-xl border-t border-white/[0.06]'
+            ? 'bg-[#0E1013]/90 backdrop-blur-xl border-t border-white/[0.04]'
             : 'bg-white/90 backdrop-blur-xl border-t border-gray-100'
         )}>
-          <motion.button
+          <button
             onClick={onDelete}
             disabled={isDeleting}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
             className={cn(
-              'flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors',
+              'flex items-center gap-2 text-sm font-medium px-4 py-2.5 rounded-xl transition-colors',
               isDark
                 ? 'text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/10'
                 : 'text-red-500 bg-red-50 hover:bg-red-100 border border-red-100',
@@ -1175,7 +1107,7 @@ function MemoryDrawer({
           >
             <Trash2 className="size-4" />
             {isDeleting ? 'Deleting...' : 'Delete'}
-          </motion.button>
+          </button>
         </div>
       </motion.div>
     </>

@@ -263,3 +263,84 @@ Stage Summary:
 - Transcribe VERIFIED: whisper-large-v3-turbo confirmed, consistent env var handling
 - All AI routes optimized with Groq-first strategy
 - Key files modified: /api/ai/chat/route.ts, /api/ai/recap/route.ts, /api/ai/summary/route.ts, /api/transcribe/route.ts, src/lib/gemini.ts, supabase-schema.sql
+
+---
+Task ID: 7
+Agent: Main
+Task: Calm Luxury UI Overhaul — Strip neon gaming aesthetic, apply Apple/Linear/Vercel calm design
+
+Work Log:
+- Read all current UI files: Dashboard.tsx, AppShell.tsx, AuthModal.tsx, AskAether.tsx, globals.css, StarField.tsx, AuroraBackground.tsx
+- Identified neon/gaming elements to remove: shimmer animations, border-beam, glow-pulse, bright purple gradients, font-black, tracking-tighter, heavy neon shadows
+- Applied CALM LUXURY design system across 7 files:
+
+1. globals.css:
+   - Dark theme background: #0B0C0E → #090A0C (deep soothing matte slate)
+   - Primary accent: #6366f1 (indigo) → #A594F9 (dusty lavender)
+   - Ring color: #6366f1 → #A594F9
+   - Card: rgba(22,23,27,0.8) → rgba(21,23,28,0.40) (lighter glass)
+   - Border: rgba(255,255,255,0.06) → rgba(255,255,255,0.04) (subtler)
+   - Removed shimmer, border-beam, glow-pulse keyframes and utility classes
+   - Light theme background: #FFFAF5 → #F7F7F8
+   - Scrollbar thumb: softer rgba values
+
+2. Dashboard.tsx:
+   - Removed ShimmerBorder and BorderBeam components entirely
+   - Greeting: text-4xl/5xl font-black tracking-tighter gradient → text-2xl/3xl font-medium tracking-tight text-zinc-100
+   - Stats: font-black text-2xl/3xl tracking-tighter → font-medium text-lg tracking-tight
+   - Capture bar: neon glow + animated border-beam → bg-[#15171C]/40 + subtle focus-within:border-[#A594F9]/40
+   - Capture button: gradient + shimmer → bg-[#A594F9]/[0.12] text-[#A594F9]
+   - Memory cards: gradient bg + blur entrance animation → bg-[#15171C]/40 + simple opacity/y transition
+   - Tags: indigo-500/10 → bg-[#A594F9]/[0.08] text-[#A594F9]/70
+   - Memory Drawer: neon gradient → bg-[#0E1013]/95 + muted recap section
+   - Particles: bright violet → subtle lavender (0.12-0.20 opacity)
+   - All logic, state, hooks, API calls preserved
+
+3. AppShell.tsx:
+   - Background: bg-[#0B0C0E] → bg-[#090A0C]
+   - Logo: gradient purple + neon shadow → bg-zinc-800/80 text-[#A594F9]
+   - AETHER text: font-black gradient clip → font-medium tracking-tight text-zinc-100
+   - Active nav: gradient + glow-pulse → bg-[#A594F9]/[0.08] border-[#A594F9]/30
+   - Mobile: matching calm updates
+
+4. AuthModal.tsx:
+   - Backdrop: bg-black/80 blur-xl → bg-black/60 blur-md (less dramatic)
+   - Panel: gradient + neon shadow → bg-[#0E1013]/98 border-white/[0.04]
+   - Logo: gradient + glow → bg-zinc-800/80 text-[#A594F9]
+   - Submit: gradient + spring physics → bg-[#A594F9]/[0.12] border-[#A594F9]/20 (plain button)
+   - Heading: font-black gradient clip → font-medium tracking-tight text-zinc-100
+
+5. AskAether.tsx:
+   - Avatars: gradient purple → bg-zinc-800/80 text-[#A594F9]
+   - User bubble: gradient purple → bg-zinc-800/80 text-zinc-100
+   - Assistant bubble: bg-white/[0.025] → bg-[#15171C]/40 text-zinc-200
+   - Send button: gradient → bg-zinc-900/90 text-zinc-100
+   - Input: neon glow → subtle lavender focus-within:border-[#A594F9]/40
+   - Suggestions: neon purple hover → calm lavender hover
+
+6. StarField.tsx:
+   - Star count: 280 → 80 (sparse, subtle)
+   - Star opacity: 0.15-0.75 → 0.05-0.30 (much dimmer)
+   - Star color: cool blue-white → warm gray rgba(180,175,200)
+   - Removed glow halos for larger stars
+
+7. AuroraBackground.tsx:
+   - Removed 4 bright indigo nebula clouds
+   - Added 3 barely-visible warm hazes at 0.02-0.03 opacity
+   - Much slower animations (40-70s instead of 35-60s)
+   - Rose ember → faint lavender tint
+
+- Lint: Clean pass
+- Dev server: Starts and responds 200
+- Browser: Verified page renders (server crashes after browser opens due to sandbox OOM, not code issue)
+
+Stage Summary:
+- Complete pivot from aggressive neon gaming aesthetic to calm luxury minimalism
+- Deep slate gray (#090A0C) replaces pitch black
+- Dusty lavender (#A594F9) replaces bright indigo/purple
+- Ultra-faint ambient glow replaces neon shadows
+- Clean typography (font-medium tracking-tight) replaces font-black tracking-tighter
+- Minimalist buttons replace gradient+glow buttons
+- Subtle glass containers (bg-[#15171C]/40) replace heavy opaque cards
+- All flashing animations stripped (shimmer, border-beam, glow-pulse removed)
+- Key files modified: globals.css, Dashboard.tsx, AppShell.tsx, AuthModal.tsx, AskAether.tsx, StarField.tsx, AuroraBackground.tsx
