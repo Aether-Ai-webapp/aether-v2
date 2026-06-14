@@ -25,13 +25,6 @@ import { toast } from 'sonner'
 import { PaywallModal } from '@/components/aether/PaywallModal'
 
 // ─── Helpers ────────────────────────────────────────────────────────
-function getGreeting(): string {
-  const hour = new Date().getHours()
-  if (hour < 12) return 'Good morning'
-  if (hour < 17) return 'Good afternoon'
-  return 'Good evening'
-}
-
 function detectContentType(text: string): 'link' | 'task' | 'note' {
   const lower = text.toLowerCase()
   if (/https?:\/\//.test(lower) || /\bwww\./.test(lower)) return 'link'
@@ -350,15 +343,8 @@ export function Dashboard() {
         className="hidden"
       />
 
-      {/* ── Greeting — single line, massive whitespace ─────────────── */}
-      <section className="w-full max-w-xl mx-auto mt-8 md:mt-16 mb-10">
-        <h1 className="text-2xl md:text-3xl font-medium tracking-tight text-zinc-800">
-          {mounted ? getGreeting() : ''}
-        </h1>
-      </section>
-
       {/* ── Floating Capture Bar ───────────────────────────────────── */}
-      <section className="w-full max-w-xl mx-auto mb-12">
+      <section className="w-full max-w-full md:max-w-xl mx-auto mt-8 md:mt-16 mb-20 md:mb-28">
         {/* Image preview pill */}
         <AnimatePresence>
           {pendingImagePreview && (
@@ -367,19 +353,19 @@ export function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.15 }}
-              className="mb-2 inline-flex items-center gap-3 px-3 py-2 rounded-xl bg-white/60 backdrop-blur-xl border border-black/[0.04] max-w-full"
+              className="mb-2 inline-flex items-center gap-3 px-3 py-2 rounded-xl bg-white/60 backdrop-blur-xl border border-black/[0.04] max-w-full overflow-hidden"
             >
               <img
                 src={pendingImagePreview}
                 alt="Preview"
-                className="size-10 rounded-lg object-cover"
+                className="size-10 rounded-lg object-cover shrink-0"
               />
               <span className="text-xs font-medium text-zinc-400 truncate max-w-[120px]">
                 {pendingImage?.name.slice(0, 20) || 'Image'}
               </span>
               <button
                 onClick={removePendingImage}
-                className="size-5 rounded-md flex items-center justify-center text-zinc-400 hover:text-zinc-600 transition-colors"
+                className="size-5 rounded-md flex items-center justify-center text-zinc-400 hover:text-zinc-600 transition-colors duration-200 shrink-0"
               >
                 <X className="size-3" />
               </button>
@@ -390,7 +376,7 @@ export function Dashboard() {
         {/* The glass capsule */}
         <div
           className={cn(
-            'bg-white/80 border border-black/[0.04] shadow-sm backdrop-blur-xl rounded-2xl p-2 transition-all duration-200 ease-in-out',
+            'bg-white/80 border border-black/[0.04] shadow-sm backdrop-blur-xl rounded-2xl p-2 transition-all duration-200 ease-in-out max-w-full overflow-hidden',
             'focus-within:border-purple-300/60 focus-within:shadow-[0_0_40px_rgba(168,85,247,0.04)]'
           )}
         >
@@ -400,7 +386,7 @@ export function Dashboard() {
               onClick={isRecording ? stopRecording : startRecording}
               disabled={isTranscribing}
               className={cn(
-                'flex items-center justify-center size-9 rounded-xl transition-all duration-200 shrink-0',
+                'flex items-center justify-center size-9 rounded-xl transition-all duration-200 ease-in-out shrink-0',
                 isRecording
                   ? 'bg-red-50 text-red-400 scale-105'
                   : isTranscribing
@@ -424,10 +410,10 @@ export function Dashboard() {
                 value={captureText}
                 onChange={(e) => setCaptureText(e.target.value)}
                 onKeyDown={handleCaptureKeyDown}
-                placeholder="What's on your mind?"
+                placeholder=""
                 disabled={isSaving}
                 className={cn(
-                  'w-full min-w-0 bg-transparent text-sm font-medium text-zinc-800 placeholder:text-zinc-300 focus:outline-none px-1 tracking-tight transition-all duration-250',
+                  'w-full min-w-0 bg-transparent text-sm font-medium text-zinc-800 placeholder:text-zinc-300 focus:outline-none px-1 tracking-tight transition-all duration-200',
                   isFadingUp && 'animate-capture-fade-up'
                 )}
               />
@@ -436,7 +422,7 @@ export function Dashboard() {
             {/* Image upload */}
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center justify-center size-9 rounded-xl transition-all duration-200 shrink-0 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50"
+              className="flex items-center justify-center size-9 rounded-xl transition-all duration-200 ease-in-out shrink-0 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50"
               aria-label="Attach image"
             >
               <ImageIcon className="size-4" />
@@ -447,7 +433,7 @@ export function Dashboard() {
               onClick={handleCapture}
               disabled={(!captureText.trim() && !pendingImage) || isSaving}
               className={cn(
-                'flex items-center justify-center size-9 rounded-xl transition-all duration-200 shrink-0',
+                'flex items-center justify-center size-9 rounded-xl transition-all duration-200 ease-in-out shrink-0',
                 (captureText.trim() || pendingImage) && !isSaving
                   ? 'bg-zinc-900 hover:bg-zinc-800 text-white'
                   : 'bg-zinc-50 text-zinc-300'
@@ -464,16 +450,16 @@ export function Dashboard() {
       </section>
 
       {/* ── Memory Feed — Borderless Rows ──────────────────────────── */}
-      <section className="w-full max-w-xl mx-auto pb-24 md:pb-8">
+      <section className="w-full max-w-full md:max-w-xl mx-auto pb-24 md:pb-8 overflow-hidden">
         {!hasFetched ? (
-          <div className="space-y-1">
+          <div className="space-y-0">
             {[0, 1, 2, 3].map((i) => (
               <div key={i} className="px-3 py-4 animate-pulse">
                 <div className="flex items-center gap-3">
-                  <div className="size-5 rounded-md bg-zinc-100 shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-3 rounded-md w-3/4 bg-zinc-100" />
-                    <div className="h-2 rounded-md w-1/3 bg-zinc-50" />
+                  <div className="size-4 rounded bg-zinc-100 shrink-0" />
+                  <div className="flex-1 space-y-1.5 min-w-0">
+                    <div className="h-2.5 rounded w-2/3 bg-zinc-100" />
+                    <div className="h-2 rounded w-1/4 bg-zinc-50" />
                   </div>
                 </div>
               </div>
@@ -484,9 +470,9 @@ export function Dashboard() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3 }}
-            className="flex flex-col items-center justify-center py-24"
+            className="flex items-center justify-center py-24"
           >
-            <Brain className="size-10 text-zinc-200 mb-3" />
+            <Brain className="size-10 text-zinc-200" />
           </motion.div>
         ) : (
           <div className="space-y-0">
@@ -538,16 +524,16 @@ function MemoryRow({ memory, index, onClick }: {
     >
       <button
         onClick={onClick}
-        className="w-full text-left px-3 py-4 rounded-xl transition-all duration-200 ease-in-out hover:bg-zinc-50/80 group flex items-start gap-3"
+        className="w-full max-w-full overflow-hidden text-left px-3 py-4 rounded-xl transition-all duration-200 ease-in-out hover:bg-zinc-50/80 group flex items-start gap-3"
       >
         {/* Type icon */}
-        <div className="size-5 rounded-md flex items-center justify-center shrink-0 mt-0.5 bg-zinc-50 group-hover:bg-zinc-100 transition-colors duration-200">
+        <div className="size-5 rounded-md flex items-center justify-center shrink-0 mt-0.5 bg-zinc-50 group-hover:bg-zinc-100 transition-colors duration-200 ease-in-out">
           <Icon className="size-2.5 text-zinc-400" />
         </div>
 
         {/* Content */}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-zinc-700 line-clamp-2 leading-relaxed group-hover:text-zinc-900 transition-colors duration-200">
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <p className="text-sm font-medium text-zinc-700 line-clamp-2 leading-relaxed group-hover:text-zinc-900 transition-colors duration-200 ease-in-out">
             {displayTitle}
           </p>
           <span className="text-[11px] text-zinc-300 mt-1 block">
@@ -556,7 +542,7 @@ function MemoryRow({ memory, index, onClick }: {
         </div>
 
         {/* Arrow */}
-        <ChevronRight className="size-3.5 text-zinc-200 group-hover:text-zinc-400 mt-1.5 shrink-0 transition-colors duration-200" />
+        <ChevronRight className="size-3.5 text-zinc-200 group-hover:text-zinc-400 mt-1.5 shrink-0 transition-colors duration-200 ease-in-out" />
       </button>
     </motion.div>
   )
@@ -601,7 +587,7 @@ function MemoryDrawer({
           </h2>
           <button
             onClick={onClose}
-            className="size-7 rounded-lg flex items-center justify-center transition-colors duration-200 shrink-0 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50"
+            className="size-7 rounded-lg flex items-center justify-center transition-colors duration-200 ease-in-out shrink-0 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50"
           >
             <X className="size-3.5" />
           </button>
@@ -686,7 +672,7 @@ function MemoryDrawer({
             onClick={onDelete}
             disabled={isDeleting}
             className={cn(
-              'flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg transition-colors duration-200',
+              'flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg transition-colors duration-200 ease-in-out',
               'text-red-400 hover:text-red-500 hover:bg-red-50/40',
               isDeleting && 'opacity-50 cursor-not-allowed'
             )}

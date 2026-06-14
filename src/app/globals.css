@@ -41,7 +41,6 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --animate-float: float 8s ease-in-out infinite;
 }
 
 /* ─── Aether Serene Light Theme ─────────────────────────────────────── */
@@ -86,6 +85,9 @@
   }
   body {
     @apply bg-background text-foreground;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
@@ -120,17 +122,52 @@
   animation: capture-fade-up 250ms ease-in-out forwards;
 }
 
-/* ─── Subtle Float (Decorative Only) ──────────────────────────────── */
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
+/* ─── Drawer Slide-In ─────────────────────────────────────────────── */
+@keyframes drawer-slide-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
 }
 
-.animate-float {
-  animation: float 8s ease-in-out infinite;
+.animate-drawer-slide-in {
+  animation: drawer-slide-in 0.3s ease-out forwards;
 }
 
-/* ─── Ambient Gradient Drift ──────────────────────────────────────── */
+/* ─── Fade-In ─────────────────────────────────────────────────────── */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out forwards;
+}
+
+/* ─── Fade-Up ─────────────────────────────────────────────────────── */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.2s ease-out forwards;
+}
+
+/* ─── Line Clamp Utilities ─────────────────────────────────────────── */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ─── Ambient Gradient Drift (Landing page only) ─────────────────── */
 @keyframes ambient-drift {
   0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.4; }
   33% { transform: translate(30px, -20px) scale(1.05); opacity: 0.5; }
@@ -149,21 +186,6 @@
 
 .animate-ambient-drift-alt {
   animation: ambient-drift-alt 40s ease-in-out infinite;
-}
-
-/* ─── Line Clamp Utilities ─────────────────────────────────────────── */
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.line-clamp-3 {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
 /* ─── Ticker Scroll for Testimonials ──────────────────────────────── */

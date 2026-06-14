@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Crown, X, Sparkles } from 'lucide-react'
+import { X, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface PaywallModalProps {
@@ -39,27 +39,14 @@ export function PaywallModal({ open, onClose }: PaywallModalProps) {
               <X className="size-3.5" />
             </button>
 
-            {/* Crown */}
-            <div className="mx-auto mb-5 size-12 rounded-xl bg-purple-50/60 flex items-center justify-center">
-              <Crown className="size-6 text-purple-400" />
-            </div>
-
             {/* Title */}
-            <h2 className="text-lg font-medium tracking-tight text-zinc-800 mb-1.5">
+            <h2 className="text-lg font-medium tracking-tight text-zinc-800 mb-5">
               Upgrade to Pro
             </h2>
 
-            {/* Body */}
-            <p className="text-sm text-zinc-400 mb-5 leading-relaxed">
-              You&apos;ve reached the free limit. Unlock unlimited memories and AI search.
-            </p>
-
             {/* Price */}
-            <p className="text-3xl font-medium text-zinc-800 mb-0.5">
+            <p className="text-3xl font-medium text-zinc-800 mb-6">
               $5<span className="text-base font-normal text-zinc-400">/mo</span>
-            </p>
-            <p className="text-[11px] text-zinc-400 mb-5">
-              Unlimited memories · AI search · Priority support
             </p>
 
             {/* CTA */}
@@ -69,14 +56,6 @@ export function PaywallModal({ open, onClose }: PaywallModalProps) {
             >
               <Sparkles className="size-3.5" />
               Upgrade
-            </button>
-
-            {/* Later */}
-            <button
-              onClick={onClose}
-              className="mt-3 text-[11px] font-medium text-zinc-400 hover:text-zinc-600 transition-colors"
-            >
-              Maybe Later
             </button>
           </motion.div>
         </motion.div>

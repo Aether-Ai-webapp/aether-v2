@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Home,
@@ -14,12 +14,6 @@ import {
 import { useAetherStore, type AppView } from '@/lib/aether-store'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Button } from '@/components/ui/button'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { AuthModal } from '@/components/aether/AuthModal'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -40,7 +34,6 @@ const navItems: NavItem[] = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { currentView, setCurrentView, isAuthenticated, user, setShowAuthModal, logout } = useAetherStore()
   const isMobile = useIsMobile()
-  const [sidebarExpanded, setSidebarExpanded] = useState(false)
 
   const handleSignOut = async () => {
     await logout()
@@ -54,133 +47,62 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {!isMobile && (
           <aside
             className={cn(
-              'h-screen fixed left-0 top-0 z-40 flex flex-col transition-all duration-200 ease-in-out',
-              sidebarExpanded ? 'w-48' : 'w-14',
+              'h-screen fixed left-0 top-0 z-40 flex flex-col w-14',
               'bg-white/50 backdrop-blur-xl border-r border-black/[0.03]'
             )}
-            onMouseEnter={() => setSidebarExpanded(true)}
-            onMouseLeave={() => setSidebarExpanded(false)}
           >
             {/* Logo */}
-            <div className={cn(
-              'flex items-center gap-2.5 h-14 shrink-0',
-              sidebarExpanded ? 'px-4' : 'px-0 justify-center',
-              'border-b border-black/[0.03]'
-            )}>
+            <div className="flex items-center justify-center h-14 shrink-0 border-b border-black/[0.03]">
               <div className="size-7 rounded-lg flex items-center justify-center shrink-0 bg-zinc-900 text-white">
                 <Brain className="size-3.5" />
               </div>
-              <AnimatePresence>
-                {sidebarExpanded && (
-                  <motion.span
-                    initial={{ opacity: 0, x: -4 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -4 }}
-                    transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
-                    className="text-xs font-medium tracking-tight text-zinc-800 whitespace-nowrap overflow-hidden"
-                  >
-                    Aether
-                  </motion.span>
-                )}
-              </AnimatePresence>
             </div>
 
             {/* Navigation */}
             <nav className="flex-1 py-2 flex flex-col gap-0.5 px-2 overflow-y-auto items-center">
-              <TooltipProvider delayDuration={0}>
-                {navItems.map((item) => {
-                  const isActive = currentView === item.view
-                  const Icon = item.icon
-                  return (
-                    <Tooltip key={item.view}>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={() => setCurrentView(item.view)}
-                          className={cn(
-                            'flex items-center gap-2.5 rounded-xl p-2 text-sm font-medium transition-all duration-200 w-full',
-                            isActive
-                              ? 'text-zinc-800 bg-zinc-100/60'
-                              : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50/60'
-                          )}
-                        >
-                          <Icon className={cn(
-                            'w-4 h-4 shrink-0 transition-colors duration-200',
-                            isActive ? 'text-zinc-800' : ''
-                          )} />
-                          <AnimatePresence>
-                            {sidebarExpanded && (
-                              <motion.span
-                                initial={{ opacity: 0, x: -4 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -4 }}
-                                transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
-                                className="text-xs whitespace-nowrap overflow-hidden"
-                              >
-                                {item.label}
-                              </motion.span>
-                            )}
-                          </AnimatePresence>
-                        </button>
-                      </TooltipTrigger>
-                      {!sidebarExpanded && (
-                        <TooltipContent side="right" className="font-medium text-xs">
-                          {item.label}
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
-                  )
-                })}
-              </TooltipProvider>
+              {navItems.map((item) => {
+                const isActive = currentView === item.view
+                const Icon = item.icon
+                return (
+                  <button
+                    key={item.view}
+                    onClick={() => setCurrentView(item.view)}
+                    className={cn(
+                      'flex items-center justify-center rounded-xl p-2.5 transition-all duration-200 w-full',
+                      isActive
+                        ? 'text-zinc-800 bg-zinc-100/60'
+                        : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50/60'
+                    )}
+                  >
+                    <Icon className={cn(
+                      'w-4 h-4 shrink-0 transition-colors duration-200',
+                      isActive ? 'text-zinc-800' : ''
+                    )} />
+                  </button>
+                )
+              })}
             </nav>
 
             {/* Bottom: auth */}
-            <div className="p-2 shrink-0 border-t border-black/[0.03]">
+            <div className="p-2 shrink-0 border-t border-black/[0.03] flex justify-center">
               {isAuthenticated ? (
-                <AnimatePresence>
-                  {sidebarExpanded && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.15 }}
-                      className="flex items-center justify-between px-2"
-                    >
-                      <span className="text-[10px] text-zinc-400 truncate font-medium">
-                        {user?.email}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 text-[10px] gap-1 px-2 rounded-lg font-medium text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50"
-                        onClick={handleSignOut}
-                      >
-                        <LogOut className="size-3" />
-                      </Button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50"
+                  onClick={handleSignOut}
+                >
+                  <LogOut className="size-3.5" />
+                </Button>
               ) : (
-                <AnimatePresence>
-                  {sidebarExpanded && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.15 }}
-                      className="px-2"
-                    >
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 text-[10px] gap-1.5 px-2 rounded-lg font-medium text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 w-full justify-start"
-                        onClick={() => setShowAuthModal(true)}
-                      >
-                        <LogIn className="size-3" />
-                        Sign In
-                      </Button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50"
+                  onClick={() => setShowAuthModal(true)}
+                >
+                  <LogIn className="size-3.5" />
+                </Button>
               )}
             </div>
           </aside>
@@ -190,19 +112,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <main
           className={cn(
             'flex-1 flex flex-col min-h-0 w-full max-w-full overflow-x-hidden transition-all duration-200 ease-in-out',
-            !isMobile && (sidebarExpanded ? 'ml-48' : 'ml-14')
+            !isMobile && 'ml-14'
           )}
         >
           {/* Mobile header */}
           {isMobile && (
             <div className="flex items-center justify-between px-4 h-11 shrink-0 bg-white/50 backdrop-blur-xl border-b border-black/[0.03]">
-              <div className="flex items-center gap-2">
-                <div className="size-6 rounded-lg flex items-center justify-center bg-zinc-900 text-white">
-                  <Brain className="size-3" />
-                </div>
-                <span className="text-xs font-medium tracking-tight text-zinc-800">
-                  Aether
-                </span>
+              <div className="size-6 rounded-lg flex items-center justify-center bg-zinc-900 text-white">
+                <Brain className="size-3" />
               </div>
               {isAuthenticated ? (
                 <Button
@@ -255,19 +172,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   key={item.view}
                   onClick={() => setCurrentView(item.view)}
                   className={cn(
-                    'flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-xl transition-all duration-200 min-w-[44px] min-h-[44px]',
+                    'flex items-center justify-center py-1 px-3 rounded-xl transition-all duration-200 min-w-[44px] min-h-[44px]',
                     isActive
                       ? 'text-zinc-800'
                       : 'text-zinc-400'
                   )}
                 >
                   <Icon className="size-[18px]" />
-                  <span className={cn(
-                    'text-[10px] font-medium',
-                    isActive && 'font-semibold'
-                  )}>
-                    {item.label}
-                  </span>
                 </button>
               )
             })}

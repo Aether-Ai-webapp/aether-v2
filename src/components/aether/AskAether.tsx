@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Brain, Send, Sparkles, MessageCircle } from 'lucide-react'
+import { Brain, Send, MessageCircle } from 'lucide-react'
 import { useAetherStore, type ChatMessage } from '@/lib/aether-store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -75,7 +75,7 @@ function ChatBubble({ message }: { message: ChatMessage }) {
       variants={messageVariants}
       initial="hidden"
       animate="visible"
-      className={cn('flex items-end gap-2', isUser ? 'justify-end' : 'justify-start')}
+      className={cn('flex items-end gap-2 max-w-full overflow-hidden', isUser ? 'justify-end' : 'justify-start')}
     >
       {!isUser && (
         <div className="size-6 rounded-full bg-zinc-50 text-purple-400 flex items-center justify-center shrink-0">
@@ -85,7 +85,7 @@ function ChatBubble({ message }: { message: ChatMessage }) {
 
       <div
         className={cn(
-          'max-w-[80%] md:max-w-[70%] rounded-2xl px-3.5 py-2.5',
+          'max-w-[80%] md:max-w-[70%] rounded-2xl px-3.5 py-2.5 overflow-hidden',
           isUser
             ? 'bg-zinc-900 text-white rounded-br-sm'
             : 'bg-white/70 border border-black/[0.03] text-zinc-700 rounded-bl-sm'
@@ -128,19 +128,11 @@ function EmptyState({ onSuggestionClick }: { onSuggestionClick: (text: string) =
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
-      className="flex flex-col items-center justify-center h-full px-4 py-16 text-center"
+      className="flex flex-col items-center justify-center h-full px-4 py-16 max-w-full overflow-hidden"
     >
-      <div className="size-12 rounded-2xl bg-zinc-50 flex items-center justify-center mb-5">
+      <div className="size-12 rounded-2xl bg-zinc-50 flex items-center justify-center mb-7">
         <Brain className="size-6 text-purple-400" />
       </div>
-
-      <h3 className="text-sm font-medium tracking-tight text-zinc-800 mb-1">
-        Ask Aether
-      </h3>
-
-      <p className="text-xs text-zinc-400 max-w-[200px] mb-7">
-        Search and explore your memories
-      </p>
 
       <div className="flex flex-wrap justify-center gap-2 max-w-[320px]">
         {suggestions.map((suggestion, i) => (
@@ -265,19 +257,10 @@ export function AskAether() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-6rem)] md:h-[calc(100dvh-4rem)] max-w-2xl mx-auto">
+    <div className="flex flex-col h-[calc(100dvh-6rem)] md:h-[calc(100dvh-4rem)] max-w-2xl mx-auto overflow-hidden">
       {/* ── Header ─────────────────────────────────────────────────── */}
       <div className="shrink-0 pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="size-7 rounded-lg bg-zinc-50 text-purple-400 flex items-center justify-center">
-              <Sparkles className="size-3.5" />
-            </div>
-            <span className="text-sm font-medium tracking-tight text-zinc-800">
-              Ask Aether
-            </span>
-          </div>
-
+        <div className="flex items-center justify-end">
           {chatMessages.length > 0 && (
             <Button
               variant="ghost"
@@ -292,14 +275,14 @@ export function AskAether() {
       </div>
 
       {/* ── Chat Area ──────────────────────────────────────────────── */}
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 max-w-full overflow-hidden">
         <ScrollArea ref={scrollRef} className="h-full">
-          <div className="pr-1">
+          <div className="pr-1 max-w-full overflow-hidden">
             <AnimatePresence mode="popLayout">
               {chatMessages.length === 0 && !isLoading ? (
                 <EmptyState onSuggestionClick={handleSuggestionClick} />
               ) : (
-                <div className="flex flex-col gap-3 py-2 pb-4">
+                <div className="flex flex-col gap-3 py-2 pb-4 max-w-full overflow-hidden">
                   {chatMessages.map((msg) => (
                     msg.content ? (
                       <ChatBubble key={msg.id} message={msg} />
@@ -321,21 +304,22 @@ export function AskAether() {
       </div>
 
       {/* ── Input Area ─────────────────────────────────────────────── */}
-      <div className="shrink-0 pt-2 pb-1">
+      <div className="shrink-0 pt-2 pb-1 max-w-full overflow-hidden">
         <form
           onSubmit={handleSubmit}
           className={cn(
             'flex items-center gap-2 p-1.5 rounded-2xl transition-all duration-200',
             'bg-white/80 border border-black/[0.04] shadow-sm backdrop-blur-xl',
-            'focus-within:border-purple-300/60 focus-within:shadow-[0_0_30px_rgba(168,85,247,0.03)]'
+            'focus-within:border-purple-300/60 focus-within:shadow-[0_0_30px_rgba(168,85,247,0.03)]',
+            'max-w-full overflow-hidden'
           )}
         >
-          <div className="relative flex-1">
+          <div className="relative flex-1 min-w-0">
             <Input
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about your memories..."
+              placeholder=""
               disabled={isLoading}
               className="rounded-xl h-9 pl-3 pr-3 text-sm border-0 shadow-none bg-transparent text-zinc-800 placeholder:text-zinc-300 focus-visible:ring-0 font-medium"
             />
@@ -345,7 +329,7 @@ export function AskAether() {
             disabled={!input.trim() || isLoading}
             size="icon"
             className={cn(
-              'size-8 rounded-xl transition-all duration-200',
+              'size-8 rounded-xl transition-all duration-200 shrink-0',
               input.trim() && !isLoading
                 ? 'bg-zinc-900 hover:bg-zinc-800 text-white'
                 : 'bg-zinc-50 text-zinc-300',

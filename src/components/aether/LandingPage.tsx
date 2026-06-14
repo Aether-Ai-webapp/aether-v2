@@ -78,32 +78,11 @@ export function LandingPage({ onEnterApp }: { onEnterApp: () => void }) {
           Your mind, entirely unified.
         </motion.h1>
 
-        {/* Subhead */}
-        <motion.p
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-          className="text-base md:text-lg text-zinc-400 font-normal max-w-lg mx-auto mt-5 text-center leading-relaxed"
-        >
-          Capture, connect, and synthesize every thought in milliseconds.
-        </motion.p>
-
-        {/* Quick-enter link */}
-        <motion.button
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          onClick={handleCTA}
-          className="mt-6 text-sm font-medium text-purple-500 hover:text-purple-600 transition-colors duration-200 underline underline-offset-4"
-        >
-          Already have an account? Sign in
-        </motion.button>
-
         {/* ── Pricing Container ───────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.5, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
           className="mt-16 w-full max-w-md"
         >
           <div className="bg-white/90 border border-black/[0.04] shadow-2xl backdrop-blur-md rounded-3xl p-10">
@@ -126,7 +105,7 @@ export function LandingPage({ onEnterApp }: { onEnterApp: () => void }) {
               {features.map((feature, i) => (
                 <li key={i} className="flex items-center gap-3">
                   <Sparkles className="size-3.5 text-purple-400 shrink-0" />
-                  <span className="text-sm font-medium text-zinc-700">✓ {feature}</span>
+                  <span className="text-sm font-medium text-zinc-700">{feature}</span>
                 </li>
               ))}
             </ul>
@@ -145,7 +124,7 @@ export function LandingPage({ onEnterApp }: { onEnterApp: () => void }) {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
           className="mt-12 w-full max-w-2xl overflow-hidden"
         >
           <div className="flex animate-ticker">
@@ -169,11 +148,6 @@ export function LandingPage({ onEnterApp }: { onEnterApp: () => void }) {
             ))}
           </div>
         </motion.div>
-
-        {/* Footer whisper */}
-        <p className="mt-10 text-xs text-zinc-300">
-          No credit card required. Cancel anytime.
-        </p>
       </div>
     </div>
   )

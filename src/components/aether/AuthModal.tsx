@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, ArrowRight, Loader2, Brain } from 'lucide-react'
+import { X, Loader2 } from 'lucide-react'
 import { useAetherStore } from '@/lib/aether-store'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -82,7 +82,7 @@ export function AuthModal() {
             onClick={(e) => e.stopPropagation()}
           >
             <div
-              className="relative w-full max-w-sm rounded-2xl p-10 bg-white border border-black/[0.04] shadow-[0_8px_40px_rgb(0,0,0,0.03)]"
+              className="relative w-full max-w-sm rounded-2xl p-12 bg-white border border-black/[0.04] shadow-[0_8px_40px_rgb(0,0,0,0.03)]"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Close */}
@@ -92,16 +92,6 @@ export function AuthModal() {
               >
                 <X className="size-3" />
               </button>
-
-              {/* Header */}
-              <div className="flex flex-col items-center mb-8">
-                <div className="size-10 rounded-xl bg-zinc-900 flex items-center justify-center mb-4">
-                  <Brain className="size-5 text-white" />
-                </div>
-                <h2 className="text-sm font-medium tracking-tight text-zinc-800">
-                  {mode === 'login' ? 'Welcome back' : 'Create account'}
-                </h2>
-              </div>
 
               {/* Form — border-b inputs, zero visual weight */}
               <form onSubmit={handleSubmit} className="space-y-5">
@@ -147,10 +137,7 @@ export function AuthModal() {
                   {isLoading ? (
                     <Loader2 className="size-4 animate-spin" />
                   ) : (
-                    <>
-                      {mode === 'login' ? 'Sign In' : 'Create Account'}
-                      <ArrowRight className="size-3" />
-                    </>
+                    mode === 'login' ? 'Sign In' : 'Create Account'
                   )}
                 </button>
               </form>
@@ -162,9 +149,7 @@ export function AuthModal() {
                   className="text-[11px] font-medium text-zinc-400 hover:text-zinc-600 transition-colors duration-200"
                   disabled={isLoading}
                 >
-                  {mode === 'login'
-                    ? "Don't have an account? Sign up"
-                    : 'Already have an account? Sign in'}
+                  {mode === 'login' ? 'Sign up' : 'Sign in'}
                 </button>
               </div>
             </div>

@@ -7,7 +7,6 @@ import {
   Plus,
   Pencil,
   Trash2,
-  BookOpen,
   Lightbulb,
   Heart,
   Briefcase,
@@ -30,7 +29,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog'
@@ -156,9 +154,6 @@ function NewCollectionDialog({
           <DialogTitle className="text-sm font-medium">
             {editingCollection ? 'Edit Collection' : 'New Collection'}
           </DialogTitle>
-          <DialogDescription className="text-xs text-zinc-400">
-            {editingCollection ? 'Update details.' : 'Organize memories by theme.'}
-          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
@@ -265,25 +260,17 @@ function CollectionCard({
               style={{ backgroundColor: collection.color }}
             />
 
-            <div className="pl-3 space-y-2.5">
+            <div className="pl-3">
               {/* Icon + Name */}
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 max-w-full overflow-hidden">
                 <div
                   className="size-8 rounded-lg flex items-center justify-center shrink-0"
                   style={{ backgroundColor: `${collection.color}15` }}
                 >
                   <CollectionIcon emoji={collection.icon} color={collection.color} />
                 </div>
-                <p className="text-sm font-medium text-zinc-800 truncate flex-1">
+                <p className="text-sm font-medium text-zinc-800 truncate max-w-full overflow-hidden">
                   {collection.name}
-                </p>
-              </div>
-
-              {/* Memory count */}
-              <div className="flex items-center gap-1.5">
-                <BookOpen className="size-3 text-zinc-400" />
-                <p className="text-[11px] text-zinc-400 font-medium">
-                  {collection.memoryCount}
                 </p>
               </div>
             </div>
@@ -359,7 +346,7 @@ function CollectionRecapDrawer({
         className="fixed top-0 right-0 h-full z-50 w-full max-w-md overflow-y-auto bg-white/95 backdrop-blur-2xl border-l border-black/[0.04]"
       >
         <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 bg-white/95 backdrop-blur-xl border-b border-black/[0.04]">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 max-w-full overflow-hidden">
             <div
               className="size-7 rounded-lg flex items-center justify-center shrink-0"
               style={{ backgroundColor: `${collection.color}15` }}
@@ -465,10 +452,7 @@ export function Collections() {
       className="space-y-6 max-w-5xl mx-auto pb-24 md:pb-8"
     >
       {/* ── Header ──────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-medium tracking-tight text-zinc-800">
-          Collections
-        </h1>
+      <div className="flex items-center justify-end">
         <Button
           onClick={handleNewCollection}
           className="gap-1.5 bg-zinc-900 hover:bg-zinc-800 text-white text-xs shadow-sm h-8 px-3"
@@ -480,8 +464,7 @@ export function Collections() {
 
       {/* ── Collection Grid ─────────────────────────────────────────── */}
       {collections.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <FolderOpen className="size-10 text-zinc-200 mb-3" />
+        <div className="flex items-center justify-center py-20">
           <Button
             onClick={handleNewCollection}
             className="gap-1.5 bg-zinc-900 hover:bg-zinc-800 text-white text-xs shadow-sm"
@@ -519,7 +502,7 @@ export function Collections() {
           <AlertDialogHeader>
             <AlertDialogTitle className="text-sm font-medium">Delete Collection</AlertDialogTitle>
             <AlertDialogDescription className="text-xs text-zinc-400">
-              Delete &ldquo;{deleteTarget?.name}&rdquo;? Memories won&apos;t be deleted.
+              &ldquo;{deleteTarget?.name}&rdquo;
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
